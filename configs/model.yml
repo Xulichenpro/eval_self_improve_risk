@@ -1,0 +1,74 @@
+DeepSeek-V3.1:
+  model: "DeepSeek-V3.1"
+  openai_api_key: "MjM5MTQ5N2FjNmIxODQ3Y2YzM2EyY2Y0ZDFkNTk1ZTM4NWMyZTFhNA=="
+  openai_api_base: "http://gw-bzokqkvr2cblz8ok6y.cn-wulanchabu-acdr-1.pai-eas.aliyuncs.com/api/predict/llm_hg_deepseek_v31/v1"
+
+DeepSeek-V3.1-p:
+  model: "DeepSeek-V3.1"
+  openai_api_key: "sk-wAwEfkNpIjNp6itX4fg-lw"
+  openai_api_base: "https://llmapi.paratera.com"
+
+DeepSeek-V3.1-s:
+  model: "deepseek-v3-ep"
+  openai_api_key: "sk-test"
+  openai_api_base: "http://dsv3.sii.edu.cn/v1"
+
+DeepSeek-V3.2-exp-sii:
+  model: "deepseek-v3.2-exp"
+  openai_api_key: "fbpuQ/UMncRBuMAYkhlXmuJC9N+BvjkO/NxoBMxi5Ss="
+  openai_api_base: "https://fyhlcy-deepseek-32-exp.openapi-qb-ai.sii.edu.cn/v1"
+
+DeepSeek-V3.1-sii:
+  model: "deepseek-v3.1"
+  openai_api_key: "fbpuQ/UMncRBuMAYkhlXmuJC9N+BvjkO/NxoBMxi5Ss="
+  openai_api_base: "https://fyh-deepseek-v31-128k.openapi-qb-ai.sii.edu.cn/v1"
+
+Qwen3-235B-A22B-Instruct-2507-sii:
+  model: "Qwen3-235B-A22B-Instruct-2507"
+  openai_api_key: "fbpuQ/UMncRBuMAYkhlXmuJC9N+BvjkO/NxoBMxi5Ss="
+  openai_api_base: "https://fyh-qwen3-235b-a22b-instruct-2507-128k.openapi-qb-ai.sii.edu.cn/v1"
+
+DeepSeek-V3.2-sii:
+  model: "deepseek-v3.2"
+  openai_api_key: "fbpuQ/UMncRBuMAYkhlXmuJC9N+BvjkO/NxoBMxi5Ss="
+  openai_api_base: "https://fyh-deepseek-v32-128k.openapi-qb-ai.sii.edu.cn/v1"
+
+DeepSeek-V3.2:
+  model: "DeepSeek-V3.2"
+  openai_api_key: "sk-4oqgitfNfTtjACSQve912A"
+  openai_api_base: "https://llmapi.paratera.com"
+
+Qwen2.5-72B-Instruct:
+  model: "Qwen2.5-72B-Instruct"
+  openai_api_key: "YzVlNjQ3Zjk5OTRlMTRlM2I1ZWExOWVmNjVjODdmZGE3ZWM5MzJjYg=="
+  openai_api_base: "http://gw-bzokqkvr2cblz8ok6y.cn-wulanchabu-acdr-1.pai-eas.aliyuncs.com/api/predict/test_honggeng_qwen25_72b/v1"
+
+Qwen3-32B:
+  model: "Qwen3-32B"
+  openai_api_key: "YTc1OWYzNTJmOTk1MWU4ZTAyNWJjNzhjY2Q1MTE3ZGE3ZWQ2OTU0Ng=="
+  openai_api_base: "http://gw-bzokqkvr2cblz8ok6y.cn-wulanchabu-acdr-1.pai-eas.aliyuncs.com/api/predict/llm_hg_qwen3_32b/v1"
+
+Qwen3-235B-A22B-Instruct-2507:
+  model: "Qwen3-235B-A22B-Instruct-2507"
+  openai_api_key: "NTc0ODlmNDY5ZWVlNTk5NjVmOTM4NDMwNjFlYzRjNmQwMjZjOWI4Yg=="
+  openai_api_base: "http://gw-bzokqkvr2cblz8ok6y.cn-wulanchabu-acdr-1.pai-eas.aliyuncs.com/api/predict/llm_hg_qwen3_235b_a22b/v1/"
+
+Qwen3-235B-A22B-Instruct-2507-s:
+  model: "qwen3-235b-a22b-instruct"
+  openai_api_key: "fbpuQ/UMncRBuMAYkhlXmuJC9N+BvjkO/NxoBMxi5Ss="
+  openai_api_base: "http://dm5koqapdkhmceckkg99cjbmgcbeo5o8.openapi-qb.sii.edu.cn/v1"
+
+gemini-3-pro-preview:
+  model: "gemini-3-pro-preview"
+  openai_api_key: "sk-WMA0Crjc6F25R0sr66Dc9773B23f440eA22568979b547118"
+  openai_api_base: "https://openkey.cloud/v1/"
+
+claude-4-sonnet:
+  model: "arn:aws:bedrock:us-west-2:036943221535:application-inference-profile/3w33qdpl5w1h"
+  openai_api_key: "7Y1DuWsuEDz5jgUdSuaHtEtnkQeCcOEn"
+  openai_api_base: "http://Bedroc-Proxy-aUa5XAckaLer-1274981936.us-west-2.elb.amazonaws.com/api/v1/"
+
+gpt-5:
+  model: "gpt-5"
+  openai_api_key: "216830783d3b45bfb58da6f5a2c7abd4"
+  openai_api_base: "https://gpt.yunstorm.com/v1"
