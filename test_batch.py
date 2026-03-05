@@ -11,6 +11,7 @@ from typing import Any
 from langchain_openai import ChatOpenAI
 
 from models.llm import get_llm,invoke_with_retry
+from models.judge_llm import judge
 from utils.process_benchmark import process_parquet_benchmark
 from utils.set_logger import setup_logger
 
@@ -41,17 +42,17 @@ def multitest_single_question(llm,data,test_sys,test_user_template,times,max_wor
             responses.append(future.result())
     answer_pattern = r"<answer>(.*?)</answer>"
     correct = 2
-    if len(responses) == 1:
-        match = re.search(answer_pattern, responses[0], re.S)
-        if match :
-            try:
-                answer = int(match.group(1).strip())
-                if answer == data["answer"]:
-                    correct = 1
-                else:
-                    correct = 0
-            except:
-                correct = 2
+    
+    match = re.search(answer_pattern, responses[0], re.S)
+    if match :
+        try:
+            answer = int(match.group(1).strip())
+            if answer == data["answer"]:
+                correct = 1
+            else:
+                correct = 0
+        except:
+            correct = 2
 
     return (responses,correct)
 
@@ -91,7 +92,7 @@ def main():
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {
             executor.submit(multitest_single_question,llm,test_data[id],test_sys,test_user_template,times,max_workers):id
-            for id in range(MAX_NUM)
+            for id in range(len(test_data))
         }
 
         for future in as_completed(futures):
@@ -135,10 +136,6 @@ def main():
     meta_file =logger_path[0:-3] + "json"
     with open(meta_file,"w",encoding = "utf-8") as f:
         json.dump(metadata,f,indent=4)
-
-
-
-
 
 
 if __name__ == "__main__":

@@ -45,3 +45,54 @@ test_user_template: |-
   <answer>
   {your_answer_here}
   </answer>
+
+judge_sys_template: |-
+  You analyze multiple reasoning trajectories for the same multiple-choice question.
+
+  Compare and contrast these trajectories. Identify which reasoning is most consistent and reliable. 
+  Prefer answers supported by clear logic and agreement across trajectories. 
+  Ignore trajectories with obvious mistakes.
+
+  Choose the most likely correct option.
+
+  Output format (must follow exactly):
+
+  <thought>
+  {your_thought_here}
+  </thought>
+  <answer>
+  {your_answer_here}
+  </answer>
+
+judege_user_template: |-
+  Question:
+  {{ data["question"] }}
+
+  Choices:
+  {% for c in data["choices"] %}
+  {{ c }}
+  {% endfor %}
+
+  Below are {{ times }} reasoning trajectories.
+
+  {% for t in range(times) %}
+  Trajectory {{ t }}:
+  {{ responses[t] }}
+
+  {% endfor %}
+
+  Compare and contrast these trajectories and decide the final answer.
+  Output format (must follow exactly):
+
+  <thought>
+  {your_thought_here}
+  </thought>
+  <answer>
+  {your_answer_here}
+  </answer>
+
+user_template_with_memory: |-
+  Below are some memory items that I accumulated from past interaction from the environment
+  that may be helpful to solve the task.You can use it when you feel it is relevant.In each step,
+  please first explicitly discuss if you want to use each memory item or not,and then take action.
+  {{memory}}
