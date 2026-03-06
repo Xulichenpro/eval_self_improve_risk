@@ -1,21 +1,23 @@
-import argparse
-from concurrent.futures import ThreadPoolExecutor,as_completed
-import logging
-from pathlib import Path
-import yaml
 import re
 import json
+import yaml
+import logging
+import argparse
 
+from pathlib import Path
 from jinja2 import Template
 from typing import Any
+from concurrent.futures import ThreadPoolExecutor,as_completed
 from langchain_openai import ChatOpenAI
+from sentence_transformers import SentenceTransformer
 
 from models.llm import get_llm,invoke_with_retry
 from models.judge_llm import judge
+from memory.Memory import Memory
 from utils.process_benchmark import process_parquet_benchmark
 from utils.set_logger import setup_logger,format_log
 
-DEFAULT_MODEL_NAME = "DeepSeek-V3.1-s"
+DEFAULT_MODEL_NAME = "Qwen3-235B-A22B-Instruct-2507"
 DEFAULT_BENCHMARK = "wmdp"
 MAX_NUM = 20
 
@@ -33,8 +35,9 @@ def test_single_question(llm,data,memories,test_sys,test_user_template):
     )
     return response
 
-def multitest_single_question(llm,data,memories,test_sys,test_user_template,judge_sys,judge_user_template,times,max_workers = 10):
+def multitest_single_question(llm,data,memory,test_sys,test_user_template,judge_sys,judge_user_template,times,max_workers = 10):
     responses = []
+    memories = memory.query_memory(data["question"], top_k=3)
     with ThreadPoolExecutor(max_workers = max_workers) as executor:
         futures = {
             executor.submit(test_single_question,llm,data,memories,test_sys,test_user_template):id
@@ -60,14 +63,14 @@ def multitest_single_question(llm,data,memories,test_sys,test_user_template,judg
 
     return (responses,correct)
 
-def test_batch_questions(llm,test_data,start_id,end_id,memories,test_sys,test_user_template,judge_sys,judge_user_template,times,logger,max_workers = 10):
+def test_batch_questions(llm,test_data,start_id,end_id,memory,test_sys,test_user_template,judge_sys,judge_user_template,times,logger,max_workers = 10):
     results = {
         "success":{},
         "failure":{"answer":{},"parse":{}}
     }
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {
-            executor.submit(multitest_single_question,llm,test_data[id],memories,test_sys,test_user_template,judge_sys,judge_user_template,times,max_workers):id
+            executor.submit(multitest_single_question,llm,test_data[id],memory,test_sys,test_user_template,judge_sys,judge_user_template,times,max_workers):id
             for id in range(start_id,end_id + 1)
         }
         
@@ -89,7 +92,7 @@ def test_batch_questions(llm,test_data,start_id,end_id,memories,test_sys,test_us
             else:
                 results["failure"]["parse"][id] = status 
     return results
-
+#TODO: 防止超过上下文窗口，对log分块
 def extract_memory(llm,results,memory_prompts):
     success_user = Template(memory_prompts["success_trajectory"]["user_template"]).render(results = results["success"])
     fail_user = Template(memory_prompts["fail_trajectory"]["user_template"]).render(results = results["failure"]["answer"] | results["failure"]["parse"])
@@ -111,7 +114,7 @@ def main():
     parser.add_argument("--benchmark","-b",default=DEFAULT_BENCHMARK,help="the benchmark you want to test")
     parser.add_argument("--times","-t",type=int,default=3,help = "the number of times a question will be tested")
     parser.add_argument("--max_workers","-n",type=int,default=10,help = "max workers for ThreadPoolExecutors")
-    parser.add_argument("--batch",type=int,default=5,help = "max workers for ThreadPoolExecutors")
+    parser.add_argument("--batch",type=int,default=3,help = "max workers for ThreadPoolExecutors")
     args = parser.parse_args()
     args = parser.parse_args()
 
@@ -128,6 +131,9 @@ def main():
     try:
         llm = get_llm(model_name = model,temperature = 0.2)
         logger.info("setup the test model")
+        embedding_model = SentenceTransformer("BAAI/bge-small-en-v1.5")
+        memory = Memory(embedding_model)
+        logger.info("setup embedding model and memory")
         test_data = process_parquet_benchmark("dataset/" + benchmark)
         logger.info("setup the test problem")
         #answer = invoke_with_retry(llm,{"role":"user","content":"introduce yourself"})
@@ -145,18 +151,25 @@ def main():
         logger.warning("Setup fail!")
     
     memories = []
-    start_id = 0
-    results = {}
-    while start_id < 15 :
-        new_results = test_batch_questions(llm,test_data,start_id,start_id + batch - 1,memories,test_sys,test_user_template,judge_sys,judge_user_template,times,logger,max_workers)
-        new_memories = extract_memory(llm,new_results,memory_prompts)
-        logger.info("🧠 Get new memoryies!\n" + "\n".join(new_memories))
-        memories.extend(new_memories)
-        start_id += batch
-        results = results | new_results #TODO:字典嵌套合并
     
-    correct_num, false_num, parse_error_num = len(results["success"]),len(results["failure"]["answer"]) ,len(results["failure"]["parse"])
+    results = {}
+    correct_num, false_num, parse_error_num = 0,0,0
 
+    for sub_benchmark,subtest_data in test_data.items():  
+        start_id = 0 
+        while start_id < len(subtest_data):
+            new_results = test_batch_questions(llm,subtest_data,start_id,start_id + batch - 1,memory,test_sys,test_user_template,judge_sys,judge_user_template,times,logger,max_workers)
+            new_memories = extract_memory(llm,new_results,memory_prompts)
+            memory.add_memory("\n".join(new_memories))
+            logger.info("🧠 Get new memoryies!\n" + "\n".join(new_memories))
+            memories.extend(new_memories)
+            start_id += batch
+            correct_num += len(new_results["success"])
+            false_num += len(new_results["failure"]["answer"])
+            parse_error_num += len(new_results["failure"]["parse"])
+            results = results | new_results #TODO:字典嵌套合并
+            
+    
     metadata = {
         "model":model,
         "benchmark":benchmark,

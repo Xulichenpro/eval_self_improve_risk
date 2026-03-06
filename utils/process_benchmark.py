@@ -65,10 +65,12 @@ def process_parquet_benchmark(path = DATASET_ROOT) -> List[Dict[str, Any]]:
     if not parquet_files:
         raise FileNotFoundError(f"未找到 parquet 文件: {root.resolve()}")
 
-    rows: List[Dict[str, Any]] = []
-
-    id = 0
+    rows = {}
+   
     for parquet_path in parquet_files:
+        id = 0
+        sub_benchmark = parquet_path.parent.name
+        sub_rows = []
         for idx, row in enumerate(_iter_parquet_rows(parquet_path), start=1):
             try:
                 if not {"answer", "question", "choices"}.issubset(row.keys()):
@@ -81,11 +83,12 @@ def process_parquet_benchmark(path = DATASET_ROOT) -> List[Dict[str, Any]]:
                     "choices": _parse_choices(row["choices"]),
                 }
                 id += 1
-                rows.append(processed)
+                sub_rows.append(processed)
             except Exception as e:
                 raise ValueError(
                     f"解析失败: 文件={parquet_path}, 记录序号={idx}, 原始数据={row}, 错误={e}"
                 ) from e
+        rows[sub_benchmark] = sub_rows
 
     return rows
 
