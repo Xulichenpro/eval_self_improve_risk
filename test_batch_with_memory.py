@@ -15,7 +15,7 @@ from models.llm import get_llm,invoke_with_retry
 from memory.grpo_memory import Memory
 from models.judge_llm import judge
 from utils.process_benchmark import process_parquet_benchmark
-from utils.set_logger import setup_logger,format_log
+from utils.set_logger import setup_logger,format_log,set_filehandler
 
 DEFAULT_MODEL_NAME = "Qwen3-235B-A22B-Instruct-2507"
 DEFAULT_BENCHMARK = "wmdp"
@@ -35,7 +35,7 @@ def test_single_question(llm,data,memories,test_sys,test_user_template):
     )
     return response
 
-def multitest_single_question(llm,data,memories,test_sys,test_user_template,judge_sys,judge_user_template,times,max_workers = 10):
+def multitest_single_question(llm,data,memories,test_sys,test_user_template,judge_sys,judge_user_template,choice_prompts,times,max_workers = 10):
     responses = []
     with ThreadPoolExecutor(max_workers = max_workers) as executor:
         futures = {
@@ -45,7 +45,7 @@ def multitest_single_question(llm,data,memories,test_sys,test_user_template,judg
         for future in as_completed(futures):
             responses.append(future.result())
     judge_user_prompt = judge_user_template.render(data = data,times = times,responses = responses,memory = "/n".join(memories))
-    responses = judge(llm,responses,judge_sys,judge_user_prompt)
+    responses, goodcase_id, badcase_id = judge(llm,responses,judge_sys,judge_user_prompt,choice_prompts)
     
     answer_pattern = r"<answer>(.*?)</answer>"
     correct = 2
@@ -60,23 +60,27 @@ def multitest_single_question(llm,data,memories,test_sys,test_user_template,judg
         except:
             correct = 2
 
-    return (responses,correct)
+    return (responses,correct,goodcase_id,badcase_id)
 
-def test_batch_questions(llm,test_data,start_id,end_id,memories,test_sys,test_user_template,judge_sys,judge_user_template,times,logger,max_workers = 10):
+def test_batch_questions(llm,test_data,start_id,end_id,memories,test_sys,test_user_template,judge_sys,judge_user_template,choice_prompts,times,logger,max_workers = 10):
     results = {
         "success":{},
         "failure":{"answer":{},"parse":{}}
     }
+    model_results = {
+        "success":{},
+        "failure":{}
+    }
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {
-            executor.submit(multitest_single_question,llm,test_data[id],memories,test_sys,test_user_template,judge_sys,judge_user_template,times,max_workers):id
+            executor.submit(multitest_single_question,llm,test_data[id],memories,test_sys,test_user_template,judge_sys,judge_user_template,choice_prompts,times,max_workers):id
             for id in range(start_id,end_id + 1)
         }
         
         for future in as_completed(futures):
-            responses,correct = future.result()
+            responses,correct,goodcase_id,badcase_id = future.result()
             id = futures[future]
-            logger_info = format_log(test_data[id], responses, correct)
+            logger_info = format_log(test_data[id], responses, correct,goodcase_id,badcase_id)
             logger.info(logger_info)
             id = futures[future]
             status = {
@@ -89,12 +93,25 @@ def test_batch_questions(llm,test_data,start_id,end_id,memories,test_sys,test_us
             elif correct == 0 :
                 results["failure"]["answer"][id] = status 
             else:
-                results["failure"]["parse"][id] = status 
-    return results
+                results["failure"]["parse"][id] = status
+            if goodcase_id:
+                model_results["success"][id] = {
+                    "question":test_data[id]["question"],
+                    "choices":test_data[id]["choices"],
+                    "responses":[responses[goodcase_id]]
+                }
+                 
+            if badcase_id:
+                model_results["failure"][id] = {
+                    "question":test_data[id]["question"],
+                    "choices":test_data[id]["choices"],
+                    "responses":[responses[badcase_id]]
+                }
+    return results,model_results
 #TODO: 防止超过上下文窗口，对log分块
 def extract_memory(llm,results,memory_prompts):
     success_user = Template(memory_prompts["success_trajectory"]["user_template"]).render(results = results["success"])
-    fail_user = Template(memory_prompts["fail_trajectory"]["user_template"]).render(results = results["failure"]["answer"] | results["failure"]["parse"])
+    fail_user = Template(memory_prompts["fail_trajectory"]["user_template"]).render(results = results["failure"])
     success_memory = invoke_with_retry(
         llm,
         {"role":"user","content":success_user},
@@ -113,7 +130,7 @@ def main():
     parser.add_argument("--benchmark","-b",default=DEFAULT_BENCHMARK,help="the benchmark you want to test")
     parser.add_argument("--times","-t",type=int,default=3,help = "the number of times a question will be tested")
     parser.add_argument("--max_workers","-n",type=int,default=10,help = "max workers for ThreadPoolExecutors")
-    parser.add_argument("--batch",type=int,default=3,help = "max workers for ThreadPoolExecutors")
+    parser.add_argument("--batch",type=int,default=8,help = "max workers for ThreadPoolExecutors")
     args = parser.parse_args()
     args = parser.parse_args()
 
@@ -126,8 +143,9 @@ def main():
     max_workers = args.max_workers
     batch = args.batch
 
-    logger:logging.Logger = setup_logger("test_with_memory",model_name = model,benchmark_name = benchmark)
-
+    logger: logging.Logger
+    logger,logger_name,log_dir = setup_logger("test_with_memory",model_name = model,benchmark_name = benchmark)
+    set_filehandler(logger,log_dir,"setup_info")
     logger.info("="*20 + " 🛠️  System Initialization " + "="*20)
     try:
         llm = get_llm(model_name = model,temperature = 0.2)
@@ -147,12 +165,37 @@ def main():
         test_user_template = Template(prompts["test_user_template"] + prompts["user_template_with_memory"])
         judge_sys = prompts["judge_sys_template"]
         judge_user_template = Template(prompts["judege_user_template"] + prompts["user_template_with_memory"])
+        choice_prompts = {
+            "best_of_n": Template(prompts["choice_prompts"]["best_of_n"]),
+            "two_different_trajs":Template(prompts["choice_prompts"]["two_different_trajs"])
+        }
         with open(memory_prompt_path,"r",encoding = "utf-8") as f:
             memory_prompts = yaml.safe_load(f)
         with open (grpo_prompt_path,"r",encoding = "utf-8") as f:
             grpo_prompts = yaml.safe_load(f)
         grpo_prompt_template = Template(grpo_prompts["grpo_user_template"])
+
+        # 1. 准备要打印的 Prompt 字典，方便统一记录
+        all_prompts = {
+            "test_sys": test_sys,
+            "test_user_template_raw": prompts["test_user_template"] + prompts["user_template_with_memory"],
+            "judge_sys": judge_sys,
+            "judge_user_template_raw": prompts["judege_user_template"] + prompts["user_template_with_memory"],
+            "memory_prompts": memory_prompts,
+            "grpo_user_template_raw": grpo_prompts["grpo_user_template"],
+            "best_of_n":prompts["choice_prompts"]["best_of_n"],
+            "two_different_trajs":prompts["choice_prompts"]["two_different_trajs"],
+        }
+
+        # 2. 详细记录到 Logger
         logger.info("🎨 Prompt templates: All Jinja2 templates compiled")
+        logger.info("--- Detailed Prompt Templates Content ---")
+
+        for name, content in all_prompts.items():
+            # 使用分隔符包裹内容，防止多行文本混淆
+            logger.info(f"\n>>> TEMPLATE NAME: {name} <<<\n{content}\n" + "-"*30)
+
+        logger.info("--- End of Prompt Templates ---")
         logger.info("-" * 50)
     except FileNotFoundError as e:
         logger.critical(f"🛑 Critical Configuration Error: {e}")
@@ -164,19 +207,21 @@ def main():
         logger.warning(f"🛑 Setup fail:{e}")
     
     correct_num, false_num, parse_error_num = 0,0,0
-
+    batch_id = 0
     try :
         for sub_benchmark,subtest_data in test_data.items():  
             start_id = 0 
+            if not sub_benchmark.startswith("wmdp-cyber"):continue
             while start_id < len(subtest_data):
+                set_filehandler(logger,log_dir,f"batch_{batch_id}")
                 logger.info("="*30 + " 🚀 Starting New Batch " + "="*30)
                 logger.info(f"📍 Sub-benchmark: {sub_benchmark} | Range: [{start_id} - {start_id + batch - 1}]")
-                new_results = test_batch_questions(llm,subtest_data,start_id,start_id + batch - 1,grpo_memory.format_memories(),test_sys,test_user_template,judge_sys,judge_user_template,times,logger,max_workers)
-                success_memory,fail_memory = extract_memory(llm,new_results,memory_prompts)
+                new_results,model_results = test_batch_questions(llm,subtest_data,start_id,start_id + batch - 1,grpo_memory.format_memories(),test_sys,test_user_template,judge_sys,judge_user_template,choice_prompts,times,logger,max_workers)
+                success_memory,fail_memory = extract_memory(llm,model_results,memory_prompts)
                 grpo_memory.process_new_memory(success_memory)
                 grpo_memory.process_new_memory(fail_memory)
-                logger.debug(f"📝 Raw Success Insight: {success_memory[:100]}...")
-                logger.debug(f"📝 Raw Failure Insight: {fail_memory[:100]}...")
+                logger.debug(f"📝 Raw Success Insight: {success_memory}...")
+                logger.debug(f"📝 Raw Failure Insight: {fail_memory}...")
                 grpo_prompt = grpo_prompt_template.render(memories = grpo_memory.format_memories())
                 logger.info("🤖 Optimizing memory policy via LLM reasoning (GRPO)...")
                 response_opt_memory = invoke_with_retry(
@@ -194,7 +239,8 @@ def main():
                 correct_num += len(new_results["success"])
                 false_num += len(new_results["failure"]["answer"])
                 parse_error_num += len(new_results["failure"]["parse"])
-                if start_id >= 6: break
+                batch_id += 1
+                if start_id >= 100: break
     except KeyboardInterrupt:
         logger.warning("🛑 User interrupted the process. Saving current metadata...")
     except Exception as e:
@@ -211,10 +257,7 @@ def main():
             "parse_error_num":parse_error_num
         }
 
-        for handler in logger.handlers:
-            if isinstance(handler, logging.FileHandler):
-                logger_path = handler.baseFilename
-        meta_file =logger_path[0:-3] + "json"
+        meta_file =f"{log_dir}/{logger_name}.json"
         with open(meta_file,"w",encoding = "utf-8") as f:
             json.dump(metadata,f,indent=4)
         logger.info(f"✅ Summary saved to {meta_file}")
