@@ -25,6 +25,7 @@ grpo_user_template: |-
     ```
 
     Your output should follow the format shown below exactly:
+    
     ```json
     [
         {
@@ -33,6 +34,7 @@ grpo_user_template: |-
             "title":"modified title",
             "description":"modified description",
             "content":"modified content",
+            "think":"your thought",
         },
         {
             "option": "merge",
@@ -40,11 +42,12 @@ grpo_user_template: |-
             "title":"merged title",
             "description":"merged description",
             "content":"merged content",
-
+            "think":"your thought",
         },
         {
             "option": "delete",
             "deleted_id": "5",//an int
+            "think":"your thought",
         }, 
     ]
     ```

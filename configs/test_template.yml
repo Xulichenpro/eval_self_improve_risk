@@ -123,7 +123,9 @@ choice_prompts:
     goal. 4. Reward consistent progress and coherent planning.  
     
     Your response must strictly follow this format:
-
+    <think>
+    {your think here}
+    <think>
     <goodcase>
     {index of the good case}
     </goodcase>
@@ -158,7 +160,10 @@ choice_prompts:
     </answer>
     ### Output Format:
     Your response must strictly follow this format:
-
+    
+    <think>
+    {your think here}
+    <think>
     <goodcase>
     {index of the good case}
     </goodcase>

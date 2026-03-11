@@ -35,13 +35,7 @@ success_trajectory:
       {% endfor %}
 
       Agent's reasoning attempts:
-      {% for r in item.responses[:-1] %}
-      - {{ r }}
-      {% endfor %}
-
-      Agent's final answer:
-      {{ item.responses[-1] }}
-
+      {{item.response}}
       ----------------------------------------
       {% endfor %}
 
@@ -92,12 +86,8 @@ fail_trajectory:
     {% endfor %}
 
     Agent's reasoning attempts:
-    {% for r in item.responses[:-1] %}
-    - {{ r }}
-    {% endfor %}
-
-    Agent's final answer:
-    {{ item.responses[-1] }}
+    {{item.response}}
+   
 
     ----------------------------------------
     {% endfor %}

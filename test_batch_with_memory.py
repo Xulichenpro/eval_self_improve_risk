@@ -45,7 +45,7 @@ def multitest_single_question(llm,data,memories,test_sys,test_user_template,judg
         for future in as_completed(futures):
             responses.append(future.result())
     judge_user_prompt = judge_user_template.render(data = data,times = times,responses = responses,memory = "/n".join(memories))
-    responses, goodcase_id, badcase_id = judge(llm,responses,judge_sys,judge_user_prompt,choice_prompts)
+    responses, judge_response,goodcase_id, badcase_id = judge(llm,responses,judge_sys,judge_user_prompt,choice_prompts)
     
     answer_pattern = r"<answer>(.*?)</answer>"
     correct = 2
@@ -60,7 +60,7 @@ def multitest_single_question(llm,data,memories,test_sys,test_user_template,judg
         except:
             correct = 2
 
-    return (responses,correct,goodcase_id,badcase_id)
+    return (responses,judge_response,correct,goodcase_id,badcase_id)
 
 def test_batch_questions(llm,test_data,start_id,end_id,memories,test_sys,test_user_template,judge_sys,judge_user_template,choice_prompts,times,logger,max_workers = 10):
     results = {
@@ -78,15 +78,17 @@ def test_batch_questions(llm,test_data,start_id,end_id,memories,test_sys,test_us
         }
         
         for future in as_completed(futures):
-            responses,correct,goodcase_id,badcase_id = future.result()
+            responses,judge_response,correct,goodcase_id,badcase_id = future.result()
             id = futures[future]
-            logger_info = format_log(test_data[id], responses, correct,goodcase_id,badcase_id)
+            full_judge = responses[-1] + '\n' + judge_response
+            logger_info = format_log(test_data[id], responses[:-1] + [full_judge], correct,goodcase_id,badcase_id)
             logger.info(logger_info)
             id = futures[future]
             status = {
                     "question":test_data[id]["question"],
                     "choices":test_data[id]["choices"],
-                    "responses":responses
+                    "responses":responses,
+                    "judge_response":judge_response,
                 }
             if correct == 1:
                 results["success"][id] = status
@@ -98,14 +100,14 @@ def test_batch_questions(llm,test_data,start_id,end_id,memories,test_sys,test_us
                 model_results["success"][id] = {
                     "question":test_data[id]["question"],
                     "choices":test_data[id]["choices"],
-                    "responses":[responses[goodcase_id]]
+                    "response":responses[goodcase_id],
                 }
                  
             if badcase_id:
                 model_results["failure"][id] = {
                     "question":test_data[id]["question"],
                     "choices":test_data[id]["choices"],
-                    "responses":[responses[badcase_id]]
+                    "response":responses[badcase_id],
                 }
     return results,model_results
 #TODO: 防止超过上下文窗口，对log分块
@@ -206,12 +208,19 @@ def main():
     except Exception as e:
         logger.warning(f"🛑 Setup fail:{e}")
     
+    dashboard_data = {
+        "summary": {},
+        "prompts": all_prompts,
+        "batches": []
+    }
+    
     correct_num, false_num, parse_error_num = 0,0,0
     batch_id = 0
+    total_processed_questions = 0
     try :
         for sub_benchmark,subtest_data in test_data.items():  
             start_id = 0 
-            if not sub_benchmark.startswith("wmdp-cyber"):continue
+            if not sub_benchmark.startswith("wmdp-bio"):continue
             while start_id < len(subtest_data):
                 set_filehandler(logger,log_dir,f"batch_{batch_id}")
                 logger.info("="*30 + " 🚀 Starting New Batch " + "="*30)
@@ -222,8 +231,10 @@ def main():
                 grpo_memory.process_new_memory(fail_memory)
                 logger.debug(f"📝 Raw Success Insight: {success_memory}...")
                 logger.debug(f"📝 Raw Failure Insight: {fail_memory}...")
+                logger.info(f"📝 Raw Memory Module Output: {grpo_memory.format_memories()}")#memories
                 grpo_prompt = grpo_prompt_template.render(memories = grpo_memory.format_memories())
-                logger.info("🤖 Optimizing memory policy via LLM reasoning (GRPO)...")
+                logger.info(f"{grpo_prompt}")
+                
                 response_opt_memory = invoke_with_retry(
                     llm,
                     {
@@ -231,16 +242,81 @@ def main():
                         "content":grpo_prompt,
                     }
                 )
+                logger.info(f"🤖 Optimizing memory policy via LLM reasoning (GRPO)...\n {response_opt_memory}")
                 grpo_memory.process_opt_memory(response_opt_memory)
                 logger.info("✨" + "-" * 20 + " Updated Global Memory " + "-" * 20 + "✨")
+                #logger.info(f"raw output :/n{response_opt_memory}/n/n")
                 logger.info(f"\n{grpo_memory.format_memories()}")
                 logger.info("✨" + "-" * 60 + "✨")
-                start_id += batch
+                
                 correct_num += len(new_results["success"])
                 false_num += len(new_results["failure"]["answer"])
                 parse_error_num += len(new_results["failure"]["parse"])
+
+                batch_questions = []
+
+                # 提取：成功 Cases (Good Cases)
+                for q_id, q_data in new_results.get("success", {}).items():
+                    batch_questions.append({
+                        "id": q_id, 
+                        "is_good": True,
+                        # ⚠️ 注意：以下 get() 里的键名("question", "options"等)，
+                        # 请确保与您 q_data 里实际存储的键名一致。如果不一致请替换。
+                        "question": q_data.get("question", "未知题目"), 
+                        "options": q_data.get("options", []), 
+                        # 如果您的系统是单次回答，可能存的是 "response"，我们可以把它包装成列表
+                        "trajectories": q_data.get("responses", ["No response"]), 
+                        "judge": q_data.get("judge_response", "No judge")
+                    })
+
+                # 提取：回答错误 Cases (Bad Cases - Answer)
+                for q_id, q_data in new_results.get("failure", {}).get("answer", {}).items():
+                    batch_questions.append({
+                        "id": q_id,
+                        "is_good": False,
+                        "question": q_data.get("question", "未知题目"),
+                        "options": q_data.get("options", []),
+                        "trajectories": q_data.get("responses", ["No response"]),
+                        "judge": q_data.get("judge_response", "No judge")
+                    })
+
+                # 提取：解析失败 Cases (Bad Cases - Parse Error)
+                for q_id, q_data in new_results.get("failure", {}).get("parse", {}).items():
+                    batch_questions.append({
+                        "id": q_id,
+                        "is_good": False, # 解析失败也算作 Bad Case
+                        "question": q_data.get("question", "未知题目"),
+                        "options": q_data.get("options", []),
+                        # 解析失败通常记录了模型的原始乱码输出
+                        "trajectories": q_data.get("responses", ["No response"]),
+                        "judge": q_data.get("judge_response", "No judge")
+                    })
+
+                # 为了让前端展示时题目顺序不乱，我们按照题号 id 重新排序一下
+                # (假设您的 q_id 可以转换为 int，如果本身是数字就不需要强转)
+                try:
+                    batch_questions.sort(key=lambda x: int(x["id"]))
+                except ValueError:
+                    pass 
+
+                batch_record = {
+                        "id": batch_id,
+                        "sub_benchmark": sub_benchmark,
+                        "range": f"{start_id} - {start_id + batch - 1}",
+                        "questions": batch_questions,
+                        "memory": {
+                            "raw_success": str(success_memory),
+                            "raw_fail": str(fail_memory),
+                            "response_opt_memory": str(response_opt_memory),
+                            "updated_global_memory": str(grpo_memory.format_memories())
+                        }
+                    }
+                dashboard_data["batches"].append(batch_record)
+                
+                start_id += batch
+                total_processed_questions += batch
                 batch_id += 1
-                if start_id >= 100: break
+                if start_id >= 6: break
     except KeyboardInterrupt:
         logger.warning("🛑 User interrupted the process. Saving current metadata...")
     except Exception as e:
@@ -263,6 +339,51 @@ def main():
         logger.info(f"✅ Summary saved to {meta_file}")
     except Exception as e:
         print(f"💥 Final Save Failed: {e}")
+    finally:
+
+        import os
+        import shutil
+        
+        try:
+            source_html_path = "index.html"
+            target_html_path = os.path.join(log_dir, "index.html")
+            
+            # 读取并写入的方式（完全按照您的需求）
+            with open(source_html_path, "r", encoding="utf-8") as src_file:
+                html_content = src_file.read()
+                
+            with open(target_html_path, "w", encoding="utf-8") as dest_file:
+                dest_file.write(html_content)
+                
+            # 注意：其实在 Python 中用 shutil.copy("index.html", target_html_path) 也可以达到一模一样的效果且更简洁
+            
+            logger.info(f"🌐 网页文件已成功生成至: {target_html_path}")
+            logger.info(f"👉 请在终端进入 {log_dir} 文件夹，并运行 'python -m http.server 8000' 来查看可视化面板。")
+            
+        except FileNotFoundError:
+            logger.error(f"🛑 找不到源网页文件: {source_html_path}。请确保它与您的 Python 脚本在同一目录下！")
+        except Exception as e:
+            logger.error(f"🛑 写入 index.html 时发生错误: {e}")
+
+        metadata = {
+            "model": model,
+            "benchmark": benchmark,
+            "temperature": 0.2, # 写入您设定的参数
+            "times": times,
+            "correct_num": correct_num,
+            "false_num": false_num,
+            "parse_error_num": parse_error_num,
+            "total_questions": total_processed_questions
+        }
+        dashboard_data["summary"] = metadata
+        
+        # 原有保存 metadata 的逻辑...
+        
+        # 👑 新增：保存给前端使用的 JSON 数据
+        dashboard_file = f"{log_dir}/result.json"
+        with open(dashboard_file, "w", encoding="utf-8") as f:
+            json.dump(dashboard_data, f, ensure_ascii=False, indent=4)
+        logger.info(f"✅ Dashboard Data saved to {dashboard_file}")
 
 if __name__ == "__main__":
     main()

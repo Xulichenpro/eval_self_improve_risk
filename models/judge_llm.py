@@ -88,4 +88,4 @@ def judge(
     if b_match:
         badcase_id = int(b_match.group(1))
 
-    return responses, goodcase_id, badcase_id
+    return responses, second_response, goodcase_id, badcase_id
