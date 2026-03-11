@@ -1,13 +1,29 @@
 grpo_user_template: |-
     An agent system is provided with a set of memories and has tried to solve problems multiple times. 
+    Since **more and concise** memory entries will be helpful to the agent system.
     From the reflections, we have got some raw memories. 
     Your task is to collect and think for the final memory revision plan. 
+    Please give the **minimum** revision plan.
+    The memory format:
+    ```  
+    # Memory Item i
+    ## Title: <the title of the memory item>  
+    ## Description: <one sentence summary of the memory item>  
+    ## Content: <1-3 sentences describing the insights learned to successfully accomplishing the task> 
+    ```
     Each final memory must satisfy the following requirements:
-    1. It must be clear, generalizable lessons for this case, with no more than 40 words
-    2. Begin with **general** background with several words in the memory
-    3. Focus on strategic thinking patterns, not specific calculations
-    4. Emphasize decision points that could apply to similar problems
-    5. Avoid repeating saying similar memory in multiple different memories
+    1. Choose the **minimum** revision.
+    2. It must be clear, **generalizable** lessons for this case.The description sessions should be no more than **50** words
+    3. Begin with **general** background with several words in the memory
+    4. Focus on strategic thinking patterns, not specific calculations
+    5. Emphasize decision points that could apply to similar problems
+    6. Avoid repeating saying similar memory in multiple different memories
+    
+    When two memories conflict with each other, follow these rules:
+    1.If the two memories apply to different scenarios, merge and generalize them.
+    2.Else,use your own knowledge and judgment when making the decision.
+
+    Use your own knowledge and judgment when making the decision.
     <memory> 
     {{memories}} 
     </memory>
@@ -16,14 +32,7 @@ grpo_user_template: |-
     You have three update options: [modify, merge, delete]
     - modify: You can modify current experiences to make it helpful
     - merge: You can merge some similar experiences into a more general forms to reduce duplication
-    The input format:
-    ```  markdown
-    # Memory Item i
-    ## Title: <the title of the memory item>  
-    ## Description: <one sentence summary of the memory item>  
-    ## Content: <1-3 sentences describing the insights learned to successfully accomplishing the task> 
-    ```
-
+   
     Your output should follow the format shown below exactly:
     
     ```json

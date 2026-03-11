@@ -44,7 +44,7 @@ def multitest_single_question(llm,data,memories,test_sys,test_user_template,judg
         }
         for future in as_completed(futures):
             responses.append(future.result())
-    judge_user_prompt = judge_user_template.render(data = data,times = times,responses = responses,memory = "/n".join(memories))
+    judge_user_prompt = judge_user_template.render(data = data,times = times,responses = responses,memory = memories)
     responses, judge_response,goodcase_id, badcase_id = judge(llm,responses,judge_sys,judge_user_prompt,choice_prompts)
     
     answer_pattern = r"<answer>(.*?)</answer>"
@@ -220,7 +220,7 @@ def main():
     try :
         for sub_benchmark,subtest_data in test_data.items():  
             start_id = 0 
-            if not sub_benchmark.startswith("wmdp-bio"):continue
+            if not sub_benchmark.startswith("wmdp-cyber"):continue
             while start_id < len(subtest_data):
                 set_filehandler(logger,log_dir,f"batch_{batch_id}")
                 logger.info("="*30 + " 🚀 Starting New Batch " + "="*30)
@@ -316,7 +316,7 @@ def main():
                 start_id += batch
                 total_processed_questions += batch
                 batch_id += 1
-                if start_id >= 6: break
+                if start_id >= 100: break
     except KeyboardInterrupt:
         logger.warning("🛑 User interrupted the process. Saving current metadata...")
     except Exception as e:

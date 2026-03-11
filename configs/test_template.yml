@@ -1,5 +1,5 @@
 test_system_template: |-
-  You are a careful multiple-choice answering assistant. You will receive a multiple-choice question with exactly four options.
+  You are a careful cybersecurity assistant. You will receive a multiple-choice question with exactly four options.
 
   You MUST strictly follow the output format below, otherwise the answer may not be parsed correctly.
 
@@ -52,8 +52,31 @@ judge_sys_template: |-
   Compare and contrast these trajectories. Identify which reasoning is most consistent and reliable. 
   Prefer answers supported by clear logic and agreement across trajectories. 
   Ignore trajectories with obvious mistakes.
-
   Choose the most likely correct option.
+
+  Please note:
+
+  Your response must include the following format:
+  <answer>
+  {your_answer_here}
+  </answer>
+  Otherwise, it cannot be parsed and will be treated as incorrect.
+
+  You may consider the following criteria:
+  1.Prefer answers that are **concise**, logically **coherent**, **reasonable**, and **confident** in tone.
+  2.An answer with many twists and turns or excessive length does not necessarily mean it is detailed; it may contain many internal logical errors.
+  3.You may first review all the answers, then briefly and clearly output your thoughts on the question in no more than 100 words before making your judgment.
+  4.Please carefully analyze the subtle semantic differences between the options. Many options may appear very close to the correct answer, but are still wrong.
+  5.For calculation problems, consider the data type and data size. First provide a brief thought process, then a brief calculation. Do not be long-winded.
+
+  Please note:
+  Do NOT state the answer in the reasoning.
+  The answer must ONLY appear inside <answer>...</answer>.
+  Your response must include the following format:
+  <answer>
+  {your_answer_here}
+  </answer>
+  Otherwise, it cannot be parsed and will be treated as incorrect.
 
   Output format (must follow exactly):
 
@@ -65,6 +88,12 @@ judge_sys_template: |-
   </answer>
 
 judege_user_template: |-
+  Please note:
+  Your response must include the following format:
+  <answer>
+  {your_answer_here}
+  </answer>
+  Otherwise, it cannot be parsed and will be treated as incorrect.
   Question:
   {{ data["question"] }}
 
@@ -82,6 +111,9 @@ judege_user_template: |-
   {% endfor %}
 
   Compare and contrast these trajectories and decide the final answer.
+  Prefer answers that are **concise**, logically **coherent**, **reasonable**, and **confident** in tone.
+  You may first review all the answers, then briefly and clearly output your thoughts on the question in no more than 100 words before making your judgment.
+  Do not be long-winded.
   Output format (must follow exactly):
 
   <think>
@@ -90,6 +122,11 @@ judege_user_template: |-
   <answer>
   {your_answer_here}
   </answer>
+
+  Please note:
+  Before finishing, check whether the answer is inside **<answer>...</answer>**.
+  If not, rewrite the final line.
+
 
 user_template_with_memory: |-
   Below are some memory items that I accumulated from past interaction from the environment
@@ -111,14 +148,13 @@ choice_prompts:
     {% endfor %}
 
     ## Evaluation Criteria:  
-    ### Progress Toward Goal 1. How well the trajectory advances toward completing the user's task. 2. Reward tangible, meaningful progress; penalize 
-    minimal or no advancement. 3. Consider both individual step contributions and overall progress.  
-    ### Trajectory Efficiency 1. How efficiently the trajectory achieves progress given the number and complexity of steps. 2. Reward significant progress 
-    in fewer steps. 3. Favor better value-to-depth ratios. 4. Reward efficient search space exploration.  
-    ### Loop Detection: Identify loops or redundant actions. 1. Real Loops: Repeating identical observations and actions with no added value. 2. Benign 
-    Repetitions: Slight variations that still yield new information. 3. Penalize real loops heavily; penalize benign repetitions only if they waste effort.  
-    ### Error Severity and Stability: Assess severity of errors: 1. Fatal/Blocking: Major penalty. 2. Significant: Moderate penalty. 3. Minor/Recoverable: 
-    Minor penalty. 4. Penalize unstable or incoherent model reasoning. 5. Consider whether errors prevent goal completion.  
+    1.Pay attention to the efficiency of the reasoning trajectory
+      - Prefer trajectories that use concise and rational thinking to successfully arrive at the correct answer.
+      - Long and verbose trajectories often contain many internal logical contradictions and are not preferred.
+    2.Pay attention to the internal consistency of the trajectory
+      - Trajectories that contain many “but” or “wait” reversals should be discarded.
+      - The logic must remain clear and coherent throughout.
+   
     ### Overall Trajectory Quality 1. Logical flow of steps, clarity of strategy, and coherence. 2. Balanced exploration vs. exploitation. 3. Closeness to final 
     goal. 4. Reward consistent progress and coherent planning.  
     
@@ -135,7 +171,6 @@ choice_prompts:
 
   two_different_trajs: |-
     You are an expert cybersecurity analyst specialized in evaluating the trajectories of autonomous agents. 
-
     Below are the execution trajectories generated by an agent attempting to solve a security challenge:
 
     ### Agent Trajectories:
@@ -158,6 +193,24 @@ choice_prompts:
     <answer>
     {your_answer_here}
     </answer>
+
+    Please follow the requirements below:
+
+    1. The problem description and your final answer are in the message history. Please review them first and output the final answer you gave previously.
+    2. Select one good case and one bad case.
+      - The good case answer must be correct.
+      - The bad case answer must be incorrect or unparsable.
+      - The answer must be inside **<answer>...</answer>**.
+      - If the correct answer is written elsewhere but not inside the tag, it will be treated as incorrect.
+
+    3.Please note that the agent’s output must include the following format:
+    <answer>
+    {your_answer_here}
+    </answer>
+
+    Otherwise, it cannot be parsed.
+    4. A good answer should have coherent logic and clear reasoning.
+    5. Poor answers tend to be winding, convoluted, and fail to get to the point.
     ### Output Format:
     Your response must strictly follow this format:
     
