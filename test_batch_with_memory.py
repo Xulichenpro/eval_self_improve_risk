@@ -47,11 +47,10 @@ def multitest_single_question(llm,data,memories,test_sys,test_user_template,judg
     judge_user_prompt = judge_user_template.render(data = data,times = times,responses = responses,memory = memories)
     responses, judge_response,goodcase_id, badcase_id = judge(llm,responses,judge_sys,judge_user_prompt,choice_prompts)
     
-    answer_pattern = r"<answer>(.*?)</answer>"
     correct = 2
-    match = re.search(answer_pattern, responses[-1], re.S)
-    if match :
-        try:
+    match = re.search(r'"answer"\s*:\s*(\d+)', responses[-1])
+    if match:
+        try :
             answer = int(match.group(1).strip())
             if answer == data["answer"]:
                 correct = 1
@@ -59,7 +58,6 @@ def multitest_single_question(llm,data,memories,test_sys,test_user_template,judg
                 correct = 0
         except:
             correct = 2
-
     return (responses,judge_response,correct,goodcase_id,badcase_id)
 
 def test_batch_questions(llm,test_data,start_id,end_id,memories,test_sys,test_user_template,judge_sys,judge_user_template,choice_prompts,times,logger,max_workers = 10):

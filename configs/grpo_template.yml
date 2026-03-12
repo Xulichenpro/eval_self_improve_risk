@@ -4,6 +4,7 @@ grpo_user_template: |-
     From the reflections, we have got some raw memories. 
     Your task is to collect and think for the final memory revision plan. 
     Please give the **minimum** revision plan.
+    You should provide at most 3 revision.
     The memory format:
     ```  
     # Memory Item i
@@ -33,7 +34,7 @@ grpo_user_template: |-
     - modify: You can modify current experiences to make it helpful
     - merge: You can merge some similar experiences into a more general forms to reduce duplication
    
-    Your output should follow the format shown below exactly:
+    Your output should follow the format shown below exactly(provide no more than 3 revision):
     
     ```json
     [

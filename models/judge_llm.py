@@ -29,7 +29,7 @@ def judge(
     answer_pattern = r"<answer>(.*?)</answer>"
     extracted_answers = []
     
-    for r in responses:
+    for r in responses[:-1]:
         match = re.search(answer_pattern, r, re.DOTALL)
         if match:
             try:

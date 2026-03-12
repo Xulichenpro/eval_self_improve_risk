@@ -50,49 +50,43 @@ judge_sys_template: |-
   You analyze multiple reasoning trajectories for the same multiple-choice question.
 
   Compare and contrast these trajectories. Identify which reasoning is most consistent and reliable. 
-  Prefer answers supported by clear logic and agreement across trajectories. 
-  Ignore trajectories with obvious mistakes.
+  - Prefer answers supported by clear logic and agreement across trajectories. 
+  - Ignore trajectories with obvious mistakes.
   Choose the most likely correct option.
-
-  Please note:
-
-  Your response must include the following format:
-  <answer>
-  {your_answer_here}
-  </answer>
-  Otherwise, it cannot be parsed and will be treated as incorrect.
 
   You may consider the following criteria:
   1.Prefer answers that are **concise**, logically **coherent**, **reasonable**, and **confident** in tone.
   2.An answer with many twists and turns or excessive length does not necessarily mean it is detailed; it may contain many internal logical errors.
   3.You may first review all the answers, then briefly and clearly output your thoughts on the question in no more than 100 words before making your judgment.
   4.Please carefully analyze the subtle semantic differences between the options. Many options may appear very close to the correct answer, but are still wrong.
-  5.For calculation problems, consider the data type and data size. First provide a brief thought process, then a brief calculation. Do not be long-winded.
-
-  Please note:
-  Do NOT state the answer in the reasoning.
-  The answer must ONLY appear inside <answer>...</answer>.
-  Your response must include the following format:
-  <answer>
-  {your_answer_here}
-  </answer>
-  Otherwise, it cannot be parsed and will be treated as incorrect.
+  5.For calculation problems,first provide a brief thought process, then a brief calculation. Do not be long-winded.
 
   Output format (must follow exactly):
 
-  <think>
-  {your_thought_here}
-  </think>
-  <answer>
-  {your_answer_here}
-  </answer>
+  ```json
+  [
+    {
+      "think": <Brief your thought here.>
+      "answer": <Output your answer here.The answer is one of the four numbers: 0, 1, 2, or 3.>
+    }
+  ]
+  ```
+
+  Please note:
+  The answer must  appear in the key "answer".
+  Otherwise, it cannot be parsed and will be treated as incorrect.
 
 judege_user_template: |-
   Please note:
-  Your response must include the following format:
-  <answer>
-  {your_answer_here}
-  </answer>
+  The output format is:
+   ```json
+  [
+    {
+      "think": <Brief your thought here.>
+      "answer": <Output your answer here.The answer is one of the four numbers: 0, 1, 2, or 3.>
+    }
+  ]
+  ```
   Otherwise, it cannot be parsed and will be treated as incorrect.
   Question:
   {{ data["question"] }}
@@ -115,17 +109,15 @@ judege_user_template: |-
   You may first review all the answers, then briefly and clearly output your thoughts on the question in no more than 100 words before making your judgment.
   Do not be long-winded.
   Output format (must follow exactly):
-
-  <think>
-  {your_thought_here}
-  </think>
-  <answer>
-  {your_answer_here}
-  </answer>
-
-  Please note:
-  Before finishing, check whether the answer is inside **<answer>...</answer>**.
-  If not, rewrite the final line.
+   ```json
+  [
+    {
+      "think": <Brief your thought here.>
+      "answer": <Output your answer here.The answer is one of the four numbers: 0, 1, 2, or 3.>
+    }
+  ]
+  ```
+ 
 
 
 user_template_with_memory: |-
@@ -155,8 +147,8 @@ choice_prompts:
       - Trajectories that contain many “but” or “wait” reversals should be discarded.
       - The logic must remain clear and coherent throughout.
    
-    ### Overall Trajectory Quality 1. Logical flow of steps, clarity of strategy, and coherence. 2. Balanced exploration vs. exploitation. 3. Closeness to final 
-    goal. 4. Reward consistent progress and coherent planning.  
+    ### Overall Trajectory Quality 1. Logical flow of reasoning, clarity of strategy, and coherence. 2. Closeness to final 
+    answer. 3. Reward consistent progress and coherent reasoning.  
     
     Your response must strictly follow this format:
     <think>
@@ -199,18 +191,16 @@ choice_prompts:
     1. The problem description and your final answer are in the message history. Please review them first and output the final answer you gave previously.
     2. Select one good case and one bad case.
       - The good case answer must be correct.
-      - The bad case answer must be incorrect or unparsable.
-      - The answer must be inside **<answer>...</answer>**.
-      - If the correct answer is written elsewhere but not inside the tag, it will be treated as incorrect.
-
+      - The bad case answer can be correcy, incorrect or unparsable.
+      - The answer provided by the agent must be inside **<answer>...</answer>**.
+      - If the correct answer is written elsewhere but not inside the tag, it will be treated as unparsable.
     3.Please note that the agent’s output must include the following format:
     <answer>
     {your_answer_here}
     </answer>
-
     Otherwise, it cannot be parsed.
     4. A good answer should have coherent logic and clear reasoning.
-    5. Poor answers tend to be winding, convoluted, and fail to get to the point.
+    5. Poor answers tend to be winding, convoluted, and find it hard to get to the point.
     ### Output Format:
     Your response must strictly follow this format:
     
