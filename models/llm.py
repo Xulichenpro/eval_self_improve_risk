@@ -29,7 +29,7 @@ def _load_model_config(config_path: Path) -> dict[str, Any]:
     return data
 
 
-def get_llm(model_name: str = DEFAULT_MODEL_NAME, config_path: Path = DEFAULT_CONFIG_PATH,temperature = 0.2) -> ChatOpenAI:
+def get_llm(model_name: str = DEFAULT_MODEL_NAME, config_path: Path = DEFAULT_CONFIG_PATH,temperature = 0.2,max_tokens = 4096) -> ChatOpenAI:
     """Build an invokable LangChain chat model by model name.
 
     Args:
@@ -59,6 +59,7 @@ def get_llm(model_name: str = DEFAULT_MODEL_NAME, config_path: Path = DEFAULT_CO
         api_key=api_key,
         base_url=api_base,
         temperature=temperature,
+        max_tokens=max_tokens,
     )
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
@@ -68,7 +69,7 @@ def invoke_with_retry(llm: ChatOpenAI, message_json: dict[str, str], message_his
     message_history.append(message_json)
 
     response = llm.invoke(message_history)
-
+    #print(response)
     return response.content
 
 def main() -> None:

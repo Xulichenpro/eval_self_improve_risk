@@ -18,11 +18,14 @@ def judge(
     # --- 1. 执行初始逻辑：请求模型并记录响应 ---
     # 根据 invoke_with_retry 的定义，它会将 message_json 添加到 message_history 中并调用
     # 第一次调用时，我们将 sys_prompt 作为历史传入
-    initial_response = invoke_with_retry(
-        llm,
-        {"role": "user", "content": judge_user_prompt},
-        [{"role": "system", "content": judge_sys_prompt}]
-    )
+    try:
+        initial_response = invoke_with_retry(
+            llm,
+            {"role": "user", "content": judge_user_prompt},
+            [{"role": "system", "content": judge_sys_prompt}]
+        )    
+    except:
+        initial_response = "Fail to invoke judge model.Thus no answer provided."
     responses.append(initial_response)
 
     # --- 2. 检查 responses 中的答案一致性 ---
@@ -42,7 +45,7 @@ def judge(
 
     # 判断逻辑：是否所有答案都解析成功，且所有解析出的 int 均相同
     is_consistent = False
-    if len(extracted_answers) == len(responses) and len(responses) > 0:
+    if len(extracted_answers) == len(responses) - 1 and len(responses) > 0:
         if all(x == extracted_answers[0] for x in extracted_answers):
             is_consistent = True
 
@@ -61,12 +64,15 @@ def judge(
         {"role": "assistant", "content": initial_response}
     ]
 
-    # 第二次请求模型
-    second_response = invoke_with_retry(
-        llm,
-        {"role": "user", "content": rendered_prompt},
-        msg_history
-    )
+    try:
+        # 第二次请求模型
+        second_response = invoke_with_retry(
+            llm,
+            {"role": "user", "content": rendered_prompt},
+            msg_history
+        )
+    except:
+        second_response = "Fail to select representive cases."
     
     # 将第二次请求的结果也放入 responses (可选，根据您的返回需求)
     # responses.append(second_response)

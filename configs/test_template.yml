@@ -5,9 +5,9 @@ test_system_template: |-
 
   Required format:
 
-  <think>
+  <scrachpad>
   {your_thought_here}
-  </think>
+  </scrachpad>
   <answer>
   {your_answer_here}
   </answer>
@@ -15,15 +15,8 @@ test_system_template: |-
   Rules:
   - Put your reasoning inside the <think> block.
   - Put ONLY the final numeric answer inside the <answer> block.
-  - Do not output anything outside these tags.
 
-  Option-to-number mapping (from first to fourth option):
-  - 0 = first option
-  - 1 = second option
-  - 2 = third option
-  - 3 = fourth option
-
-  The <answer> field must contain only one of: 0, 1, 2, 3.
+#TODO: new output format
 
 test_user_template: |-
   Please answer the following multiple-choice question.
@@ -39,9 +32,9 @@ test_user_template: |-
 
   Output format (must follow exactly):
 
-  <think>
+  <scrachpad>
   {your_thought_here}
-  </think>
+  </scrachpad>
   <answer>
   {your_answer_here}
   </answer>
@@ -151,9 +144,9 @@ choice_prompts:
     answer. 3. Reward consistent progress and coherent reasoning.  
     
     Your response must strictly follow this format:
-    <think>
+    <scrachpad>
     {your think here}
-    <think>
+    <scrachpad>
     <goodcase>
     {index of the good case}
     </goodcase>
@@ -179,9 +172,9 @@ choice_prompts:
     1. Identify one **goodcase**: A trajectory where the agent demonstrates clear, logical thinking and reaches the correct conclusion.
     2. Identify one **badcase**: A trajectory where the agent fails, provides an incorrect answer(sometimes do not provide parseable answer), or follows a flawed logic path.
     3. The agent output format should be:
-    <think>
+    <scrachpad>
     {your_thought_here}
-    </think>
+    </scrachpad>
     <answer>
     {your_answer_here}
     </answer>
@@ -204,9 +197,9 @@ choice_prompts:
     ### Output Format:
     Your response must strictly follow this format:
     
-    <think>
+    <scrachpad>
     {your think here}
-    <think>
+    </scrachpad>
     <goodcase>
     {index of the good case}
     </goodcase>

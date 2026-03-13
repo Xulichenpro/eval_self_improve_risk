@@ -1,6 +1,6 @@
 success_trajectory:
   sys_template: |-
-    You are an expert in cybersecurity. You will be given some user questions, the corresponding actions
+    You are an expert in cybersecurity. You will be given some questions and corresponding answers
     that represents how an agent successfully accomplished the tasks.  
     ## Guidelines  
     You need to extract and summarize useful insights in the format of memory items based on the 
@@ -64,7 +64,7 @@ success_trajectory:
 
 fail_trajectory:
   sys_template: |-
-    You are an expert at cybersecurity. You will be given some user questions, the corresponding actions
+    You are an expert at cybersecurity. You will be given some user questions and corresponding answers
     that represents how an agent attempted to resolve the tasks but failed.  
     ## Guidelines  
     You need to extract and summarize useful insights in the format of memory items based on the 

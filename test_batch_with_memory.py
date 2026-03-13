@@ -27,12 +27,14 @@ def test_single_question(llm,data,memories,test_sys,test_user_template):
         choices = data["choices"],
         memory = memories,
     )
-    
-    response = invoke_with_retry(
-        llm,
-        {"role":"user","content":test_user},
-        message_history = [{"role":"system","content":test_sys}]
-    )
+    try:
+        response = invoke_with_retry(
+            llm,
+            {"role":"user","content":test_user},
+            message_history = [{"role":"system","content":test_sys}]
+        )
+    except:
+        response = "The agent failed to get an answer due to connection error."
     return response
 
 def multitest_single_question(llm,data,memories,test_sys,test_user_template,judge_sys,judge_user_template,choice_prompts,times,max_workers = 10):
@@ -112,16 +114,23 @@ def test_batch_questions(llm,test_data,start_id,end_id,memories,test_sys,test_us
 def extract_memory(llm,results,memory_prompts):
     success_user = Template(memory_prompts["success_trajectory"]["user_template"]).render(results = results["success"])
     fail_user = Template(memory_prompts["fail_trajectory"]["user_template"]).render(results = results["failure"])
-    success_memory = invoke_with_retry(
-        llm,
-        {"role":"user","content":success_user},
-        [{"role":"system","content":memory_prompts["success_trajectory"]["sys_template"]}]
-    )
-    fail_memory = invoke_with_retry(
-        llm,
-        {"role":"user","content":fail_user},
-        [{"role":"system","content":memory_prompts["fail_trajectory"]["sys_template"]}]
-    )
+    try :
+        success_memory = invoke_with_retry(
+            llm,
+            {"role":"user","content":success_user},
+            [{"role":"system","content":memory_prompts["success_trajectory"]["sys_template"]}]
+        )
+    except:
+        success_memory = "No success memory." 
+    
+    try:
+        fail_memory = invoke_with_retry(
+            llm,
+            {"role":"user","content":fail_user},
+            [{"role":"system","content":memory_prompts["fail_trajectory"]["sys_template"]}]
+        )
+    except:
+        fail_memory = "No fail memory."
     return [success_memory,fail_memory]
 
 def main():
@@ -142,13 +151,15 @@ def main():
     grpo_prompt_path = "configs/grpo_template.yml"
     max_workers = args.max_workers
     batch = args.batch
+    max_tokens = 4096
+    temperature = 0.7
 
     logger: logging.Logger
     logger,logger_name,log_dir = setup_logger("test_with_memory",model_name = model,benchmark_name = benchmark)
     set_filehandler(logger,log_dir,"setup_info")
     logger.info("="*20 + " 🛠️  System Initialization " + "="*20)
     try:
-        llm = get_llm(model_name = model,temperature = 0.2)
+        llm = get_llm(model_name = model,temperature = temperature,max_tokens = max_tokens)
         logger.info(f"🤖 Model loaded: [ {model} ] (Temp: 0.2)")
         #embedding_model = SentenceTransformer("BAAI/bge-small-en-v1.5")
         grpo_memory = Memory()
@@ -232,14 +243,17 @@ def main():
                 logger.info(f"📝 Raw Memory Module Output: {grpo_memory.format_memories()}")#memories
                 grpo_prompt = grpo_prompt_template.render(memories = grpo_memory.format_memories())
                 logger.info(f"{grpo_prompt}")
-                
-                response_opt_memory = invoke_with_retry(
-                    llm,
-                    {
-                        "role":"user",
-                        "content":grpo_prompt,
-                    }
-                )
+
+                try :
+                    response_opt_memory = invoke_with_retry(
+                        llm,
+                        {
+                            "role":"user",
+                            "content":grpo_prompt,
+                        }
+                    )
+                except:
+                    response_opt_memory = "Fail to get memory optimization plan."
                 logger.info(f"🤖 Optimizing memory policy via LLM reasoning (GRPO)...\n {response_opt_memory}")
                 grpo_memory.process_opt_memory(response_opt_memory)
                 logger.info("✨" + "-" * 20 + " Updated Global Memory " + "-" * 20 + "✨")
