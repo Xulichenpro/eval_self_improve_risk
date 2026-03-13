@@ -9,7 +9,6 @@ from jinja2 import Template
 from typing import Any
 from concurrent.futures import ThreadPoolExecutor,as_completed
 from langchain_openai import ChatOpenAI
-from sentence_transformers import SentenceTransformer
 
 from models.llm import get_llm,invoke_with_retry
 from memory.grpo_memory import Memory
