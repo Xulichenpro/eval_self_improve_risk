@@ -170,6 +170,103 @@ def format_log(data, responses, correct, goodcase_id=None, badcase_id=None):
 
     return "\n".join(log)
 
+def format_log_without_judge(data, responses, corrects, goodcase_id=None, badcase_id=None):
+    """
+    格式化评估日志，支持多轮回答状态展示，并区分 Agent 回答与最终判定。
+    
+    :param data: 包含 question 和 choices 的字典
+    :param responses: 响应列表，最后一个通常为最终判定(Judge)
+    :param corrects: 整型数组，对应 responses[:-1] 中每轮回答的状态码 (1: 正确, 0: 错误, 2: 无法解析)
+    :param goodcase_id: 榜样样例在 responses 中的索引
+    :param badcase_id: 反面教材在 responses 中的索引
+    """
+    question = data.get("question", "")
+    choices = data.get("choices", [])
+
+    line = "═" * 76
+    sub_line = "─" * 76
+
+    # 状态映射映射表
+    status_map = {
+        1: ("✅ CORRECT", "green"),
+        0: ("❌ WRONG", "red"),
+        2: ("⚠️ UNPARSEABLE", "yellow"),
+    }
+
+    def get_status_text(code):
+        return status_map.get(code, ("❔ UNKNOWN", "gray"))[0]
+
+    def safe_str(x):
+        return "" if x is None else str(x)
+
+    # 辅助函数：根据索引获取标注标签
+    def get_tag(idx):
+        tags = []
+        if goodcase_id is not None and idx == goodcase_id:
+            tags.append("🌟 [GOOD CASE]")
+        if badcase_id is not None and idx == badcase_id:
+            tags.append("🚫 [BAD CASE]")
+        return " " + " ".join(tags) if tags else ""
+
+    log = []
+    # Header
+    log.append(f"\n{line}")
+    log.append(f"🧾 EVAL LOG")
+    log.append(f"{line}")
+
+    # Question
+    log.append("🧠 QUESTION")
+    log.append(sub_line)
+    log.append(safe_str(question))
+
+    # Choices
+    log.append("\n📌 CHOICES")
+    log.append(sub_line)
+    labels = ["0", "1", "2", "3"]
+    for i, choice in enumerate(choices):
+        label = labels[i] if i < len(labels) else str(i)
+        log.append(f"  {label}. {safe_str(choice)}")
+
+    # Agent responses
+    log.append("\n🤖 AGENT RESPONSES")
+    log.append(sub_line)
+
+    if not responses:
+        log.append("(no responses)")
+    else:
+        # 1. 迭代 zip(responses[:-1], corrects) 展示每轮回答及其正误
+        agent_responses = responses[:-1]
+        for i, (resp, corr_code) in enumerate(zip(agent_responses, corrects)):
+            tag = get_tag(i)
+            status_text = get_status_text(corr_code)
+            log.append(f"[Agent {i+1}] | Result: {status_text}{tag}")
+            log.append(safe_str(resp))
+            log.append("")
+
+        # 2. 最后输出 responses[-1]，即 judge 的信息
+        final_idx = len(responses) - 1
+        final_tag = get_tag(final_idx)
+        log.append(f"⚖️ FINAL JUDGEMENT{final_tag}")
+        log.append(sub_line)
+        log.append(safe_str(responses[-1]))
+
+    # 3. Footer summary: 仅输出 Agent 每轮的正误，不输出 Judge 的
+    log.append(f"\n{line}")
+    summary_parts = []
+    for i, corr_code in enumerate(corrects):
+        summary_parts.append(f"Agent {i+1}: {get_status_text(corr_code)}")
+    
+    log.append(f"🏁 SUMMARY: {' | '.join(summary_parts)}")
+    log.append(f"{line}\n")
+
+    return "\n".join(log)
+
+# --- 使用示例 ---
+# data_sample = {"question": "1+1等于几？", "choices": ["1", "2", "3", "4"]}
+# resps = ["我想想，应该是3吧", "不对，应该是2", "判定：最终答案是2，回答正确。"]
+# corrs = [0, 1] # 对应前两个回答的状态
+# print(format_log_without_judge(data_sample, resps, corrs))
+
 def main():
     my_logger, name, dir = setup_logger(test_name="eval_task")
     print(f"Logger '{name}' initialized.")
