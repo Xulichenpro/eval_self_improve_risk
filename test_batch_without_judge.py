@@ -334,7 +334,7 @@ def main():
                 start_id += batch
                 total_processed_questions += batch
                 batch_id += 1
-                if start_id >= 5: break
+                if start_id >= 100: break
     except KeyboardInterrupt:
         logger.warning("🛑 User interrupted the process. Saving current metadata...")
     except Exception as e:
