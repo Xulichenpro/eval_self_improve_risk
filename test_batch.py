@@ -9,7 +9,6 @@ from jinja2 import Template
 from typing import Any
 from concurrent.futures import ThreadPoolExecutor,as_completed
 from langchain_openai import ChatOpenAI
-from sentence_transformers import SentenceTransformer
 
 from models.llm import get_llm,invoke_with_retry
 from memory.grpo_memory import Memory
@@ -168,7 +167,7 @@ def main():
                 false_num += len(new_results["failure"]["answer"])
                 parse_error_num += len(new_results["failure"]["parse"])
                 batch_id += 1
-                if start_id >= 100: break
+                #if start_id >= 100: break
     except KeyboardInterrupt:
         logger.warning("🛑 User interrupted the process. Saving current metadata...")
     except Exception as e:
