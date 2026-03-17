@@ -36,7 +36,7 @@ def test_single_question(llm,data,memories,test_sys,test_user_template):
         response = "The agent failed to get an answer due to connection error."
     return response
 
-def multitest_single_question(llm,data,memories,test_sys,test_user_template,judge_sys,judge_user_template,choice_prompts,times,max_workers = 10):
+def multitest_single_question(llm,data,memories,test_sys,test_user_template,times,max_workers = 10):
     responses = []
     with ThreadPoolExecutor(max_workers = max_workers) as executor:
         futures = {
@@ -45,12 +45,10 @@ def multitest_single_question(llm,data,memories,test_sys,test_user_template,judg
         }
         for future in as_completed(futures):
             responses.append(future.result())
-    judge_user_prompt = judge_user_template.render(data = data,times = times,responses = responses,memory = memories)
-    responses, judge_response,goodcase_id, badcase_id = judge(llm,responses,judge_sys,judge_user_prompt,choice_prompts)
     
     #exclude judge result
     corrects = []
-    for response in responses[:-1]: 
+    for response in responses: 
         answer_pattern = r"<answer>(.*?)</answer>"
         correct = 2
         match = re.search(answer_pattern, response, re.S)
@@ -65,30 +63,31 @@ def multitest_single_question(llm,data,memories,test_sys,test_user_template,judg
                 correct = 2
         corrects.append(correct)
     
-    return (responses,judge_response,corrects,goodcase_id,badcase_id)
+    return (responses,corrects)
 
-def test_batch_questions(llm,test_data,start_id,end_id,memories,test_sys,test_user_template,judge_sys,judge_user_template,choice_prompts,times,logger,max_workers = 10):
+def test_batch_questions(llm,test_data,start_id,end_id,memories,test_sys,test_user_template,times,logger,max_workers = 10):
     results = {
         "success":[],
         "failure":{"answer":[],"parse":[]}
     }
-    model_results = {
-        "success":{},
-        "failure":{}
-    }
+    model_results = {}
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {
-            executor.submit(multitest_single_question,llm,test_data[id],memories,test_sys,test_user_template,judge_sys,judge_user_template,choice_prompts,times,max_workers):id
+            executor.submit(multitest_single_question,llm,test_data[id],memories,test_sys,test_user_template,times,max_workers):id
             for id in range(start_id,end_id + 1)
         }
         
         for future in as_completed(futures):
-            responses,judge_response,corrects,goodcase_id,badcase_id = future.result()
+            responses,corrects = future.result()
             id = futures[future]
-            full_judge = responses[-1] + '\n' + judge_response
-            logger_info = format_log_without_judge(test_data[id], responses[:-1] + [full_judge], corrects,goodcase_id,badcase_id)
+            logger_info = format_log_without_judge(test_data[id], responses, corrects)
             logger.info(logger_info)
             id = futures[future]
+            model_results[id] = {
+                "question":test_data[id]["question"],
+                "choices":test_data[id]["choices"],
+                "response":responses
+            }
             for response,correct in zip(responses,corrects):
                 status = {
                     "question":test_data[id]["question"],
@@ -101,43 +100,21 @@ def test_batch_questions(llm,test_data,start_id,end_id,memories,test_sys,test_us
                     results["failure"]["answer"].append(status)
                 else:
                     results["failure"]["parse"].append(status)
-
-            if goodcase_id:
-                model_results["success"][id] = {
-                    "question":test_data[id]["question"],
-                    "choices":test_data[id]["choices"],
-                    "response":responses[goodcase_id],
-                }
-                 
-            if badcase_id:
-                model_results["failure"][id] = {
-                    "question":test_data[id]["question"],
-                    "choices":test_data[id]["choices"],
-                    "response":responses[badcase_id],
-                }
     return results,model_results
-#TODO: 防止超过上下文窗口，对log分块
+
 def extract_memory(llm,results,memory_prompts):
-    success_user = Template(memory_prompts["success_trajectory"]["user_template"]).render(results = results["success"])
-    fail_user = Template(memory_prompts["fail_trajectory"]["user_template"]).render(results = results["failure"])
+    user = Template(memory_prompts["user_template"]).render(results = results)
+
     try :
-        success_memory = invoke_with_retry(
+        memory = invoke_with_retry(
             llm,
-            {"role":"user","content":success_user},
-            [{"role":"system","content":memory_prompts["success_trajectory"]["sys_template"]}]
+            {"role":"user","content":user},
+            [{"role":"system","content":memory_prompts["sys_template"]}]
         )
     except:
-        success_memory = "No success memory." 
+        memory = "No success memory." 
     
-    try:
-        fail_memory = invoke_with_retry(
-            llm,
-            {"role":"user","content":fail_user},
-            [{"role":"system","content":memory_prompts["fail_trajectory"]["sys_template"]}]
-        )
-    except:
-        fail_memory = "No fail memory."
-    return [success_memory,fail_memory]
+    return memory
 
 def main():
     parser = argparse.ArgumentParser(description="setup the parameter for test")
@@ -166,6 +143,7 @@ def main():
     logger.info("="*20 + " 🛠️  System Initialization " + "="*20)
     try:
         llm = get_llm(model_name = model,temperature = temperature,max_tokens = max_tokens)
+        memory_llm = get_llm(model_name = model,temperature = temperature,max_tokens = max_tokens * 2)
         logger.info(f"🤖 Model loaded: [ {model} ] (Temp: {temperature})")
         #embedding_model = SentenceTransformer("BAAI/bge-small-en-v1.5")
         grpo_memory = Memory()
@@ -180,28 +158,22 @@ def main():
             prompts = yaml.safe_load(f)
         test_sys = prompts["test_system_template"]
         test_user_template = Template(prompts["test_user_template"] + prompts["user_template_with_memory"])
-        judge_sys = prompts["judge_sys_template"]
-        judge_user_template = Template(prompts["judege_user_template"] + prompts["user_template_with_memory"])
-        choice_prompts = {
-            "best_of_n": Template(prompts["choice_prompts"]["best_of_n"]),
-            "two_different_trajs":Template(prompts["choice_prompts"]["two_different_trajs"])
-        }
+       
         with open(memory_prompt_path,"r",encoding = "utf-8") as f:
             memory_prompts = yaml.safe_load(f)
         with open (grpo_prompt_path,"r",encoding = "utf-8") as f:
             grpo_prompts = yaml.safe_load(f)
-        grpo_prompt_template = Template(grpo_prompts["grpo_user_template"])
+        grpo_sys = grpo_prompts["grpo_sys_template"]
+        grpo_user_template = Template(grpo_prompts["grpo_user_template"])
 
         # 1. 准备要打印的 Prompt 字典，方便统一记录
         all_prompts = {
             "test_sys": test_sys,
             "test_user_template_raw": prompts["test_user_template"] + prompts["user_template_with_memory"],
-            "judge_sys": judge_sys,
-            "judge_user_template_raw": prompts["judege_user_template"] + prompts["user_template_with_memory"],
-            "memory_prompts": memory_prompts,
+            "memory_sys": memory_prompts["sys_template"],
+            "memory_user_template_raw":memory_prompts["user_template"],
+            "grpo_sys":grpo_sys,
             "grpo_user_template_raw": grpo_prompts["grpo_user_template"],
-            "best_of_n":prompts["choice_prompts"]["best_of_n"],
-            "two_different_trajs":prompts["choice_prompts"]["two_different_trajs"],
         }
 
         # 2. 详细记录到 Logger
@@ -223,12 +195,7 @@ def main():
     except Exception as e:
         logger.warning(f"🛑 Setup fail:{e}")
     
-    dashboard_data = {
-        "summary": {},
-        "prompts": all_prompts,
-        "batches": []
-    }
-    
+
     correct_num, false_num, parse_error_num = 0,0,0
     batch_id = 0
     total_processed_questions = 0
@@ -240,30 +207,28 @@ def main():
                 set_filehandler(logger,log_dir,f"batch_{batch_id}")
                 logger.info("="*30 + " 🚀 Starting New Batch " + "="*30)
                 logger.info(f"📍 Sub-benchmark: {sub_benchmark} | Range: [{start_id} - {start_id + batch - 1}]")
-                new_results,model_results = test_batch_questions(llm,subtest_data,start_id,start_id + batch - 1,grpo_memory.format_memories(),test_sys,test_user_template,judge_sys,judge_user_template,choice_prompts,times,logger,max_workers)
-                success_memory,fail_memory = extract_memory(llm,model_results,memory_prompts)
-                grpo_memory.process_new_memory(success_memory)
-                grpo_memory.process_new_memory(fail_memory)
-                logger.debug(f"📝 Raw Success Insight: {success_memory}...")
-                logger.debug(f"📝 Raw Failure Insight: {fail_memory}...")
-                logger.info(f"📝 Raw Memory Module Output: {grpo_memory.format_memories()}")#memories
-                grpo_prompt = grpo_prompt_template.render(memories = grpo_memory.format_memories())
-                logger.info(f"{grpo_prompt}")
+                new_results,model_results = test_batch_questions(llm,subtest_data,start_id,start_id + batch - 1,grpo_memory.format_memories(),test_sys,test_user_template,times,logger,max_workers)
+                memory = extract_memory(memory_llm,model_results,memory_prompts)
+                grpo_memory.process_new_memory(memory)
+               
+                #logger.debug(f"📝 Raw Insight: {memory}...")      
+                logger.info(f"📝 Raw Memory Module Output:\n {grpo_memory.format_memories()}")#memories
+                grpo_user_prompt = grpo_user_template.render(memories = grpo_memory.format_memories())
 
                 try :
                     response_opt_memory = invoke_with_retry(
-                        llm,
+                        memory_llm,
                         {
                             "role":"user",
-                            "content":grpo_prompt,
-                        }
+                            "content":grpo_user_prompt,
+                        },
+                        [{"role":"system","content":grpo_sys}]
                     )
                 except:
                     response_opt_memory = "Fail to get memory optimization plan."
                 logger.info(f"🤖 Optimizing memory policy via LLM reasoning (GRPO)...\n {response_opt_memory}")
                 grpo_memory.process_opt_memory(response_opt_memory)
                 logger.info("✨" + "-" * 20 + " Updated Global Memory " + "-" * 20 + "✨")
-                #logger.info(f"raw output :/n{response_opt_memory}/n/n")
                 logger.info(f"\n{grpo_memory.format_memories()}")
                 logger.info("✨" + "-" * 60 + "✨")
                 
@@ -274,7 +239,7 @@ def main():
                 start_id += batch
                 total_processed_questions += batch
                 batch_id += 1
-                #if start_id >= 100: break
+                if start_id >= 5: break
     except KeyboardInterrupt:
         logger.warning("🛑 User interrupted the process. Saving current metadata...")
     except Exception as e:

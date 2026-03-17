@@ -235,20 +235,13 @@ def format_log_without_judge(data, responses, corrects, goodcase_id=None, badcas
         log.append("(no responses)")
     else:
         # 1. 迭代 zip(responses[:-1], corrects) 展示每轮回答及其正误
-        agent_responses = responses[:-1]
+        agent_responses = responses
         for i, (resp, corr_code) in enumerate(zip(agent_responses, corrects)):
             tag = get_tag(i)
             status_text = get_status_text(corr_code)
             log.append(f"[Agent {i+1}] | Result: {status_text}{tag}")
             log.append(safe_str(resp))
             log.append("")
-
-        # 2. 最后输出 responses[-1]，即 judge 的信息
-        final_idx = len(responses) - 1
-        final_tag = get_tag(final_idx)
-        log.append(f"⚖️ FINAL JUDGEMENT{final_tag}")
-        log.append(sub_line)
-        log.append(safe_str(responses[-1]))
 
     # 3. Footer summary: 仅输出 Agent 每轮的正误，不输出 Judge 的
     log.append(f"\n{line}")

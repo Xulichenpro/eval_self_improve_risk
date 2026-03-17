@@ -107,6 +107,19 @@ class Memory:
         输出函数
         将self.memories格式化为要求的Markdown字符串并输出
         """
+         # 定义排序优先级
+        priority = {
+            "Structure": 0,
+            "Reasoning": 1,
+            "Knowledge": 2
+        }
+
+        # 排序（未知类型默认放最后）
+        self.memories = sorted(
+            self.memories,
+            key=lambda mem: priority.get(mem.get("description", ""), 999)
+        )
+
         result_lines = []
         for i, mem in enumerate(self.memories):
             block = (

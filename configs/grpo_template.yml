@@ -1,17 +1,11 @@
-grpo_user_template: |-
+grpo_sys_template: |-
     An agent system is provided with a set of memories and has tried to solve problems multiple times. 
-    Since **more and concise** memory entries will be helpful to the agent system.
+    Since **concise** memory entries will be helpful to the agent system.
     From the reflections, we have got some raw memories. 
     Your task is to collect and think for the final memory revision plan. 
     Please give the **minimum** revision plan.
-    You should provide at most 3 revision.
-    The memory format:
-    ```  
-    # Memory Item i
-    ## Title: <the title of the memory item>  
-    ## Description: <one sentence summary of the memory item>  
-    ## Content: <1-3 sentences describing the insights learned to successfully accomplishing the task> 
-    ```
+    You should provide at most 3 revisions.
+   
     Each final memory must satisfy the following requirements:
     1. Choose the **minimum** revision.
     2. It must be clear, **generalizable** lessons for this case.The description sessions should be no more than **50** words
@@ -25,15 +19,28 @@ grpo_user_template: |-
     2.Else,use your own knowledge and judgment when making the decision.
 
     Use your own knowledge and judgment when making the decision.
-    <memory> 
-    {{memories}} 
-    </memory>
+   
     
     Please think for how to update existing experiences,
     You have three update options: [modify, merge, delete]
     - modify: You can modify current experiences to make it helpful
     - merge: You can merge some similar experiences into a more general forms to reduce duplication
    
+    The memory format:
+    ```  
+    # Memory Item i
+    ## Title: <the title of the memory item>  
+    ## Description: Enum[Reasoning,Structure,Knowledge]
+    ## Content: <1-3 sentences describing the insights learned to successfully accomplishing the task> 
+    ```
+    
+    
+grpo_user_template: |-
+    Raw memory:
+    <memory> 
+    {{memories}} 
+    </memory>
+
     Your output should follow the format shown below exactly(provide no more than 3 revision):
     
     ```json
@@ -61,4 +68,3 @@ grpo_user_template: |-
         }, 
     ]
     ```
-   
