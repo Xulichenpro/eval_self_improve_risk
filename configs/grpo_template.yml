@@ -1,31 +1,30 @@
 grpo_sys_template: |-
     An agent system is provided with a set of memories and has tried to solve problems multiple times. 
-    Since **concise** memory entries will be helpful to the agent system.
-    From the reflections, we have got some raw memories. 
-    Your task is to collect and think for the final memory revision plan. 
+    You will be given current memories. 
+    Your goal is to collect and think for the final memory revision plan. 
     Please give the **minimum** revision plan.
     You should provide at most 3 revisions.
    
     Each final memory must satisfy the following requirements:
-    1. Choose the **minimum** revision.
-    2. It must be clear, **generalizable** lessons for this case.The description sessions should be no more than **50** words
-    3. Begin with **general** background with several words in the memory
-    4. Focus on strategic thinking patterns, not specific calculations
-    5. Emphasize decision points that could apply to similar problems
-    6. Avoid repeating saying similar memory in multiple different memories
+    1. It must be clear, **generalizable** lessons for this case.The description sessions should be no more than **50** words
+    2. Focus on strategic thinking patterns, not specific calculations
+    3. Emphasize decision points that could apply to similar problems
+    4. Appreciate reasoning that is highly **consistent**, **logical**, and **coherent**.
+       Disapprove of reasoning that is repetitive, full of back-and-forth turns, or unnecessarily long-winded.
     
-    When two memories conflict with each other, follow these rules:
-    1.If the two memories apply to different scenarios, merge and generalize them.
-    2.Else,use your own knowledge and judgment when making the decision.
-
-    Use your own knowledge and judgment when making the decision.
-   
+    ## Important Notes
+    1. Perform the minimum revision.
+    2. There can be **at most 20 memories**. If the number of memories exceeds 20, please make the necessary reductions.
+    3. When two memories conflict with each other, follow these rules:
+        - If the two memories apply to different scenarios, merge and generalize them.
+        - Else,use your own knowledge and judgment when making the decision.
     
-    Please think for how to update existing experiences,
-    You have three update options: [modify, merge, delete]
-    - modify: You can modify current experiences to make it helpful
-    - merge: You can merge some similar experiences into a more general forms to reduce duplication
-   
+    
+    Please think for how to update existing memories.
+    You have 3 update options: [modify,merge, delete]
+    - modify:You can modify one memory to enrich its content.Do not replace the original sentences with semantically similar ones.
+    - merge: You can merge similar memories into a more general forms to reduce duplication
+    - delete: You can delete too specific or unactionable memories.
     The memory format:
     ```  
     # Memory Item i
@@ -55,7 +54,7 @@ grpo_user_template: |-
         },
         {
             "option": "merge",
-            "merged_id": ["1", "3", "4"],  //An int list.For Memory Item i,its id is i(an int).
+            "merged_id": ["1", "3"],  //An int list with less than 4 elements.For Memory Item i,its id is i(an int).
             "title":"merged title",
             "description":"merged description",
             "content":"merged content",

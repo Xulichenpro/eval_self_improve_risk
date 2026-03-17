@@ -49,9 +49,9 @@ def multitest_single_question(llm,data,memories,test_sys,test_user_template,time
     #exclude judge result
     corrects = []
     for response in responses: 
-        answer_pattern = r"<answer>(.*?)</answer>"
+        answer_pattern = r"</scrachpad>.*?<answer>(.*?)</answer>"
         correct = 2
-        match = re.search(answer_pattern, response, re.S)
+        match = re.search(answer_pattern, response.strip(), re.DOTALL)
         if match :
             try:
                 answer = int(match.group(1).strip())
@@ -102,8 +102,8 @@ def test_batch_questions(llm,test_data,start_id,end_id,memories,test_sys,test_us
                     results["failure"]["parse"].append(status)
     return results,model_results
 
-def extract_memory(llm,results,memory_prompts):
-    user = Template(memory_prompts["user_template"]).render(results = results)
+def extract_memory(llm,memories,results,memory_prompts):
+    user = Template(memory_prompts["user_template"]).render(results = results,memories = memories)
 
     try :
         memory = invoke_with_retry(
@@ -157,7 +157,7 @@ def main():
         with open(test_prompt_path,"r",encoding = "utf-8") as f:
             prompts = yaml.safe_load(f)
         test_sys = prompts["test_system_template"]
-        test_user_template = Template(prompts["test_user_template"] + prompts["user_template_with_memory"])
+        test_user_template = Template(prompts["test_user_template"] +  prompts["user_template_with_memory"])
        
         with open(memory_prompt_path,"r",encoding = "utf-8") as f:
             memory_prompts = yaml.safe_load(f)
@@ -169,7 +169,7 @@ def main():
         # 1. 准备要打印的 Prompt 字典，方便统一记录
         all_prompts = {
             "test_sys": test_sys,
-            "test_user_template_raw": prompts["test_user_template"] + prompts["user_template_with_memory"],
+            "test_user_template_raw": prompts["test_user_template"] +  prompts["user_template_with_memory"],
             "memory_sys": memory_prompts["sys_template"],
             "memory_user_template_raw":memory_prompts["user_template"],
             "grpo_sys":grpo_sys,
@@ -207,11 +207,11 @@ def main():
                 set_filehandler(logger,log_dir,f"batch_{batch_id}")
                 logger.info("="*30 + " 🚀 Starting New Batch " + "="*30)
                 logger.info(f"📍 Sub-benchmark: {sub_benchmark} | Range: [{start_id} - {start_id + batch - 1}]")
-                new_results,model_results = test_batch_questions(llm,subtest_data,start_id,start_id + batch - 1,grpo_memory.format_memories(),test_sys,test_user_template,times,logger,max_workers)
-                memory = extract_memory(memory_llm,model_results,memory_prompts)
+                new_results,model_results = test_batch_questions(llm,subtest_data,start_id,min(start_id + batch - 1,len(subtest_data) - 1),grpo_memory.format_memories(),test_sys,test_user_template,times,logger,max_workers)
+                memory = extract_memory(memory_llm,grpo_memory.format_memories(),model_results,memory_prompts)
                 grpo_memory.process_new_memory(memory)
                
-                #logger.debug(f"📝 Raw Insight: {memory}...")      
+                logger.debug(f"📝 Raw Insight:\n {memory}...")      
                 logger.info(f"📝 Raw Memory Module Output:\n {grpo_memory.format_memories()}")#memories
                 grpo_user_prompt = grpo_user_template.render(memories = grpo_memory.format_memories())
 
@@ -239,7 +239,7 @@ def main():
                 start_id += batch
                 total_processed_questions += batch
                 batch_id += 1
-                if start_id >= 5: break
+                if start_id >= 100: break
     except KeyboardInterrupt:
         logger.warning("🛑 User interrupted the process. Saving current metadata...")
     except Exception as e:

@@ -1,47 +1,78 @@
 sys_template: |-
-  You are an expert in cybersecurity. You will be given some questions and corresponding answers
-  that represents how an agent accomplished the tasks.  
-  ## Guidelines  
-  You need to extract and summarize useful insights in the format of memory items based on the 
-  agent's trajectories.  
-  The goal of summarized memory items is to be **helpful and generalizable** for future similar tasks.  
+  You are an expert in cybersecurity.
+  An agent answered a set of cybersecurity-related multiple-choice questions. 
+  Based on the question and the existing memories, the agent generated three separate answers for each question.
+
+  You will be given:
+  1. memories the agent used when answering
+  2. the question and options for each question
+  3. the agent’s three answers.
+
+  Your goal is to distill **helpful and generalizable** memories that can improve the agent’s future performance.
+
+  ## Guidelines
+  1. Use **self-contrasting reasoning**: each question has 3 answers. Carefully analyze these answers and determine which are correct and which are incorrect.
+  2. Appreciate reasoning that is highly **consistent**, **logical**, and **coherent**.
+     Disapprove of reasoning that is repetitive, full of back-and-forth turns, or unnecessarily long-winded.
+  3. Extract memories according to the following rules:
+      - Identify patterns and strategies that consistently led to success.
+      - Identify mistakes or inefficiencies from failed trajectories and     formulate preventative strategies.
+      - Prefer strategies that generalize beyond specific situations.
+
   ## Important notes  
-  - Please provide **general** memory.Specific one is not helpful at all.
-  - You must first think why the trajectory is successful, and then summarize the insights.  
-  - You can extract at most 3 memory items from the trajectory. 
-  - You must not repeat similar or overlapping items.  
+  - Please provide memory that can be **generalize** to many other questions.
+  - You can extract at most 4 memory items from these trajectories. 
+  - You must not repeat similar or overlapping items. 
+  - Pay attention to calculation problems.
+  - The agent's output must include **<answer> {answer} </answer>**,otherwise the answer cannot be parsed.
+  - Appreciate reasoning that is highly **consistent**, **logical**, and **coherent**
+    Disapprove of reasoning that is repetitive, full of back-and-forth turns, or unnecessarily long-winded 
 
   You can consider the following three aspects:
-  1. Reasoning Process
-    - Whether it is concise, coherent, reasonable, and consistent.
-  2. Answer Structure
-    - Whether it follows the required output format.
+  1. Answer Structure
+    - Whether it follows the required **output format**.
+    - The agent's output must include **<answer> {answer} </answer>**,otherwise the answer cannot be parsed.
+  2. Reasoning Process
+    - Whether it is **concise, coherent, reasonable, and consistent**.
   3. Knowledge Base
     - How well existing knowledge is connected to the question.
     - How to handle situations when encountering unfamiliar knowledge.
 
-  ## Output Format  
-  Your output must strictly follow the Markdown format shown below:  
-  ```  
-  # Memory Item  
-  ## Title: <the title of the memory item>  
-  ## Description: Enum[Reasoning,Structure,Knowledge]
-  ## Content: <1-3 sentences describing the insights learned to successfully accomplishing the task> 
-  ```
-user_template: |-
-  You are given the results of several question-answering attempts made by an agent.
-  You can consider it from the following perspectives:
-  1. The agent’s output must include the following tags. 
+  The agent output format:
+  (must follow exactly):
+  <scrachpad>
+  {your_thought_here}
+  </scrachpad>
   <answer>
   {your_answer_here}
   </answer>
-  Please pay close attention to whether the output format meets the required standard.
-  Any output that does not follow this format cannot be parsed and will be considered invalid:
+  The agent's output must include <answer> {answer} </answer> ,otherwise the answer cannot be parsed.
+  
+  ## Output Format  
+  Your output must strictly follow the format shown below:  
+  ``` json
+    [
+      {
+        "id":<the question id>,
+        "reasoning":<your judge about the question>,
+        "good_id":<the id of correct responses>,
+        "bad_id":<the ids of incorrect responses>,
+      },
+      ...
+    ]
+  ```
+  ```  
+  # Memory Item  
+  ## Title: <the title of the memory item>  
+  ## Description: Enum[Structure,Reasoning,Knowledge]
+  ## Content: <1-3 sentences describing the insights learned to successfully accomplishing the task> 
+  ```
+user_template: |
 
-  2. Analyze the agent’s reasoning process
-      - Appreciate reasoning that is highly **consistent**, **logical**, and **coherent**
-      - Disapprove of reasoning that is repetitive, full of back-and-forth turns, or unnecessarily long-winded
-
+  Current memories:
+  {{memories}}
+  
+  
   Below are the results:
 
   {% for idx, item in results.items() %}
