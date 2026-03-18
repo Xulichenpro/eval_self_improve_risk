@@ -209,28 +209,29 @@ def main():
                 logger.info(f"📍 Sub-benchmark: {sub_benchmark} | Range: [{start_id} - {start_id + batch - 1}]")
                 new_results,model_results = test_batch_questions(llm,subtest_data,start_id,min(start_id + batch - 1,len(subtest_data) - 1),grpo_memory.format_memories(),test_sys,test_user_template,times,logger,max_workers)
                 memory = extract_memory(memory_llm,grpo_memory.format_memories(),model_results,memory_prompts)
-                grpo_memory.process_new_memory(memory)
+                if memory:
+                    grpo_memory.process_new_memory(memory)
                
-                logger.debug(f"📝 Raw Insight:\n {memory}...")      
-                logger.info(f"📝 Raw Memory Module Output:\n {grpo_memory.format_memories()}")#memories
-                grpo_user_prompt = grpo_user_template.render(memories = grpo_memory.format_memories())
+                    logger.debug(f"📝 Raw Insight:\n {memory}...")      
+                    logger.info(f"📝 Raw Memory Module Output:\n {grpo_memory.format_memories()}")#memories
+                    grpo_user_prompt = grpo_user_template.render(memories = grpo_memory.format_memories())
 
-                try :
-                    response_opt_memory = invoke_with_retry(
-                        memory_llm,
-                        {
-                            "role":"user",
-                            "content":grpo_user_prompt,
-                        },
-                        [{"role":"system","content":grpo_sys}]
-                    )
-                except:
-                    response_opt_memory = "Fail to get memory optimization plan."
-                logger.info(f"🤖 Optimizing memory policy via LLM reasoning (GRPO)...\n {response_opt_memory}")
-                grpo_memory.process_opt_memory(response_opt_memory)
-                logger.info("✨" + "-" * 20 + " Updated Global Memory " + "-" * 20 + "✨")
-                logger.info(f"\n{grpo_memory.format_memories()}")
-                logger.info("✨" + "-" * 60 + "✨")
+                    try :
+                        response_opt_memory = invoke_with_retry(
+                            memory_llm,
+                            {
+                                "role":"user",
+                                "content":grpo_user_prompt,
+                            },
+                            [{"role":"system","content":grpo_sys}]
+                        )
+                    except:
+                        response_opt_memory = "Fail to get memory optimization plan."
+                    logger.info(f"🤖 Optimizing memory policy via LLM reasoning (GRPO)...\n {response_opt_memory}")
+                    grpo_memory.process_opt_memory(response_opt_memory)
+                    logger.info("✨" + "-" * 20 + " Updated Global Memory " + "-" * 20 + "✨")
+                    logger.info(f"\n{grpo_memory.format_memories()}")
+                    logger.info("✨" + "-" * 60 + "✨")
                 
                 correct_num += len(new_results["success"])
                 false_num += len(new_results["failure"]["answer"])
