@@ -86,7 +86,7 @@ def test_batch_questions(llm,test_data,start_id,end_id,memories,test_sys,test_us
             model_results[id] = {
                 "question":test_data[id]["question"],
                 "choices":test_data[id]["choices"],
-                "response":responses
+                "responses":responses
             }
             for response,correct in zip(responses,corrects):
                 status = {
@@ -134,7 +134,7 @@ def main():
     grpo_prompt_path = "configs/grpo_template.yml"
     max_workers = args.max_workers
     batch = args.batch
-    max_tokens = 4096
+    max_tokens = None
     temperature = 0.7
 
     logger: logging.Logger
@@ -143,7 +143,7 @@ def main():
     logger.info("="*20 + " 🛠️  System Initialization " + "="*20)
     try:
         llm = get_llm(model_name = model,temperature = temperature,max_tokens = max_tokens)
-        memory_llm = get_llm(model_name = model,temperature = temperature,max_tokens = max_tokens * 2)
+        memory_llm = get_llm(model_name = model,temperature = temperature,max_tokens = None)
         logger.info(f"🤖 Model loaded: [ {model} ] (Temp: {temperature})")
         #embedding_model = SentenceTransformer("BAAI/bge-small-en-v1.5")
         grpo_memory = Memory()

@@ -70,5 +70,5 @@ if __name__ == "__main__":
     # 请确保目录存在
     # log_dir.mkdir(exist_ok=True)
     # parse_memory_log("wmdp_test", 0, 5)
-    parse_memory_log("wmdp/Qwen3-235B-A22B-Instruct-2507/test_without_judge_20260317_185029",0,12)
-    #parse_raw_log("wmdp/Qwen3-235B-A22B-Instruct-2507/raw_test_20260316_044415",0,56)
+    parse_raw_log("wmdp/Qwen3-235B-A22B-Instruct-2507/raw_test_20260318_125141",0,2)
+    parse_memory_log("wmdp/Qwen3-235B-A22B-Instruct-2507/test_without_judge_20260318_130231",0,11)

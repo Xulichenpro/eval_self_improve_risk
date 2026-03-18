@@ -29,7 +29,7 @@ def _load_model_config(config_path: Path) -> dict[str, Any]:
     return data
 
 
-def get_llm(model_name: str = DEFAULT_MODEL_NAME, config_path: Path = DEFAULT_CONFIG_PATH,temperature = 0.2,max_tokens = 4096) -> ChatOpenAI:
+def get_llm(model_name: str = DEFAULT_MODEL_NAME, config_path: Path = DEFAULT_CONFIG_PATH,temperature = 0.2,max_tokens = None) -> ChatOpenAI:
     """Build an invokable LangChain chat model by model name.
 
     Args:
@@ -54,13 +54,21 @@ def get_llm(model_name: str = DEFAULT_MODEL_NAME, config_path: Path = DEFAULT_CO
             f"Model '{model_name}' must contain both 'openai_api_key' and 'openai_api_base' in {config_path}"
         )
 
-    return ChatOpenAI(
-        model=actual_model,
-        api_key=api_key,
-        base_url=api_base,
-        temperature=temperature,
-        max_tokens=max_tokens,
-    )
+    if max_tokens:
+        return ChatOpenAI(
+            model=actual_model,
+            api_key=api_key,
+            base_url=api_base,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+    else:
+        return ChatOpenAI(
+            model=actual_model,
+            api_key=api_key,
+            base_url=api_base,
+            temperature=temperature,
+        )
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
 def invoke_with_retry(llm: ChatOpenAI, message_json: dict[str, str], message_history:list = []) -> str:

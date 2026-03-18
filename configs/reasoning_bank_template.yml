@@ -22,6 +22,8 @@ sys_template: |-
   ## Important notes  
   - Please provide memory that can be **generalize** to many other questions.
   - You can extract at most 4 memory items from these trajectories. 
+  - Feel free to brainstorm and consider various reasoning patterns.
+  - You must not provide memory similar to current memories.
   - You must not repeat similar or overlapping items. 
   - Pay attention to calculation problems.
   - The agent's output must include **<answer> {answer} </answer>**,otherwise the answer cannot be parsed.
