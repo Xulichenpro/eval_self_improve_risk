@@ -122,14 +122,15 @@ def main():
     test_prompt_path = "configs/test_template.yml"
     max_workers = args.max_workers
     batch = args.batch
+    max_tokens = None
 
     logger: logging.Logger
     logger,logger_name,log_dir = setup_logger("raw_test",model_name = model,benchmark_name = benchmark)
     set_filehandler(logger,log_dir,"setup_info")
     logger.info("="*20 + " 🛠️  System Initialization " + "="*20)
     try:
-        llm = get_llm(model_name = model,temperature = 0.7)
-        logger.info(f"🤖 Model loaded: [ {model} ] (Temp: 0.7)")
+        llm = get_llm(model_name = model,temperature = 0.7,max_tokens=max_tokens)
+        logger.info(f"🤖 Model loaded: [ {model} ] (Temp: 0.7) (Max_tokens = {max_tokens})")
         
         test_data = process_parquet_benchmark("dataset/" + benchmark)
         sub_task_count = len(test_data)
@@ -139,7 +140,7 @@ def main():
         with open(test_prompt_path,"r",encoding = "utf-8") as f:
             prompts = yaml.safe_load(f)
         test_sys = prompts["test_system_template"]
-        test_user_template = Template(prompts["test_user_template"] + HUMAN_MEMORY)
+        test_user_template = Template(prompts["test_user_template"])
 
         # 1. 准备要打印的 Prompt 字典，方便统一记录
         all_prompts = {

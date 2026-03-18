@@ -134,7 +134,7 @@ def main():
     grpo_prompt_path = "configs/grpo_template.yml"
     max_workers = args.max_workers
     batch = args.batch
-    max_tokens = None
+    max_tokens = 8192
     temperature = 0.7
 
     logger: logging.Logger
@@ -144,7 +144,7 @@ def main():
     try:
         llm = get_llm(model_name = model,temperature = temperature,max_tokens = max_tokens)
         memory_llm = get_llm(model_name = model,temperature = temperature,max_tokens = None)
-        logger.info(f"🤖 Model loaded: [ {model} ] (Temp: {temperature})")
+        logger.info(f"🤖 Model loaded: [ {model} ] (Temp: 0.7) (Max_tokens = {max_tokens})")
         #embedding_model = SentenceTransformer("BAAI/bge-small-en-v1.5")
         grpo_memory = Memory()
         logger.info("🧠 Memory module: Initialized successfully")

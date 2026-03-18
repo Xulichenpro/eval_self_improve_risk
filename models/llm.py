@@ -60,6 +60,7 @@ def get_llm(model_name: str = DEFAULT_MODEL_NAME, config_path: Path = DEFAULT_CO
             api_key=api_key,
             base_url=api_base,
             temperature=temperature,
+            timeout = 1000,
             max_tokens=max_tokens,
         )
     else:
@@ -67,6 +68,7 @@ def get_llm(model_name: str = DEFAULT_MODEL_NAME, config_path: Path = DEFAULT_CO
             model=actual_model,
             api_key=api_key,
             base_url=api_base,
+            timeout = 1000,
             temperature=temperature,
         )
 
