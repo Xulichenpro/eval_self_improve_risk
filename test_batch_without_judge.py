@@ -225,7 +225,7 @@ def main():
                             },
                             [{"role":"system","content":grpo_sys}]
                         )
-                        response_opt_memory = None
+                        #response_opt_memory = None
                     except:
                         response_opt_memory = "Fail to get memory optimization plan."
                     logger.info(f"🤖 Optimizing memory policy via LLM reasoning (GRPO)...\n {response_opt_memory}")

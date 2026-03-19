@@ -25,6 +25,13 @@ sys_template: |-
     - Identify mistakes or inefficiencies from failed trajectories and formulate preventative strategies
     - Focus on the memories that the agent is still lacking
 
+  Each memory item should follow these rules:
+  - **Relevance**: whether the memory item can directly help address actual cybersecurity problems
+  - **Actionability**: whether the memory item provides clear, implementable instructions that can be followed
+  - **Transferability**: whether it is useful beyond just one instance, but not too vague
+  - **Brevity**: whether it is concise and clear without unnecessary words
+  - **Non-duplication**: whether it does not repeat other items
+  
   ## Important notes  
   - Please provide memory that can be **transferable** and **helpful** to many other cybersecurity questions
   - Do **not** mention **the context of the problem** in the memory
