@@ -1,3 +1,3 @@
-python test_batch.py
-python test_batch.py
-python test_batch.py
+python test_batch_without_judge.py
+python test_batch_without_judge.py
+python test_batch_without_judge.py
