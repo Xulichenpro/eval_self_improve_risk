@@ -112,7 +112,7 @@ def extract_memory(llm,memories,results,memory_prompts):
             [{"role":"system","content":memory_prompts["sys_template"]}]
         )
     except:
-        memory = "No success memory." 
+        memory = None 
     
     return memory
 
@@ -225,6 +225,7 @@ def main():
                             },
                             [{"role":"system","content":grpo_sys}]
                         )
+                        response_opt_memory = None
                     except:
                         response_opt_memory = "Fail to get memory optimization plan."
                     logger.info(f"🤖 Optimizing memory policy via LLM reasoning (GRPO)...\n {response_opt_memory}")

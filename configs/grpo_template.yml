@@ -1,30 +1,38 @@
 grpo_sys_template: |-
-    An agent system is provided with a set of memories and has tried to solve problems multiple times. 
-    You will be given current memories. 
+    You are an expert in cybersecurity.
+    An agent has answered a set of cybersecurity-related multiple-choice questions. 
+    Based on the question and the existing memories, the agent generated three separate answers for each question.
+
+    You will be given the existing memories. 
     Your goal is to collect and think for the final memory revision plan. 
     Please give the **minimum** revision plan.
     You should provide at most 3 revisions.
    
     Each final memory must satisfy the following requirements:
-    1. It must be clear, **generalizable** lessons for this case.The description sessions should be no more than **50** words
+    1. It must be clear, **helpful and generalizable** lessons for cybersecurity problems.
     2. Focus on strategic thinking patterns, not specific calculations
-    3. Appreciate reasoning that is highly **consistent**, **logical**, and **coherent**.
-       Disapprove of reasoning that is repetitive, full of back-and-forth turns, or unnecessarily long-winded.
-    4. Emphasize decision points that could apply to similar problems
-    
+    3. Emphasize decision points that could apply to similar problems
+    4. The information density of each memory should be appropriate
+    5. The content sessions of each item should be no more than **50** words
+
+    Please think for how to update existing memories.
+    You have 3 update options: [modify, merge, delete]
+    - modify:You can **modify** one memory to improve its quality.
+    - merge: You can **merge** similar memories into a more general forms to reduce duplication
+    - delete: You can **delete** **too specific** or **unactionable** memories.
+
     ## Important Notes
     1. Perform the minimum revision.
-    2. There can be **at most 20 memories**. If the number of memories exceeds 20, please make the necessary reductions.
-    3. When two memories conflict with each other, follow these rules:
-        - If the two memories apply to different scenarios, merge and generalize them.
+    2. When perform **modify** operation, do not replace the original sentences with semantically similar ones.
+    3. When you think a memory item is too specific,generalize it rather than delete it.
+    4. The description session of a memory item specifies its type; you may only merge memory items of the same type.
+    5. Is the information density of each memory appropriate? 
+       If it is too high, **modify** to distill the key points; if it is too low, either **delete** it or **modify** it by adding content.
+    6. There can be **at most 20 memories**. If the number of memories exceeds 20, please only perform **merge and delete** operation to reduce memories.
+    7. When two memories conflict with each other, follow these rules:
+        - If the two memories apply to different scenarios, **merge** and generalize them.
         - Else,use your own knowledge and judgment when making the decision.
     
-    
-    Please think for how to update existing memories.
-    You have 3 update options: [modify,merge, delete]
-    - modify:You can modify one memory to enrich its content.Do not replace the original sentences with semantically similar ones.
-    - merge: You can merge similar memories into a more general forms to reduce duplication
-    - delete: You can delete too specific or unactionable memories.
     The memory format:
     ```  
     # Memory Item i
@@ -41,18 +49,9 @@ grpo_user_template: |-
     </memory>
 
     Your output should follow the format shown below exactly(provide no more than 3 revision):
-    
     ```json
     [
-        {
-            "option": "modify",
-            "modified_id": "2", //An int.For Memory Item i,its id is i(an int).
-            "title":"modified title",
-            "description":"modified description",
-            "content":"modified content",
-            "think":"your thought",
-        },
-        {
+       {
             "option": "merge",
             "merged_id": ["1", "3"],  //An int list with less than 4 elements.For Memory Item i,its id is i(an int).
             "title":"merged title",
@@ -65,5 +64,13 @@ grpo_user_template: |-
             "deleted_id": "5",//an int
             "think":"your thought",
         }, 
+        {
+            "option": "modify",
+            "modified_id": "2", //An int.For Memory Item i,its id is i(an int).
+            "title":"modified title",
+            "description":"modified description",
+            "content":"modified content",
+            "think":"your thought",
+        },
     ]
     ```

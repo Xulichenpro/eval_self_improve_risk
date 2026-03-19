@@ -13,7 +13,7 @@ test_system_template: |-
   </answer>
 
   Rules:
-  - Put your reasoning inside the <think> block.
+  - Put your reasoning inside the <scrachpad> block.
   - Put ONLY the final numeric answer inside the <answer> block.
 
 #TODO: new output format
@@ -114,11 +114,14 @@ judege_user_template: |-
 
 
 user_template_with_memory: |-
+  {% if memory %}
   Below are some memory items that I accumulated from past interaction from the environment
-  that may be helpful to solve the task.You can use it when you feel it is relevant.In each step,
-  please discuss if you want to use each memory item or not.
+  that may be helpful to solve the task. You can use it when you feel it is relevant.
+  When memory conflicts with the conditions of the problem, prioritize the problem conditions.
+  In each step, please discuss if you want to use each memory item or not.
   {{memory}}
-
+  {% endif %}
+  
 choice_prompts: 
   best_of_n: |-
     You are an expert in evaluating cyber security agent trajectories. 

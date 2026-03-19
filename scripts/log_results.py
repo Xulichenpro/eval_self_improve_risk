@@ -30,7 +30,7 @@ def parse_memory_log(log_path: str, start_id: int, end_id: int):
                 parse_error_num += summary.count("⚠️ UNPARSEABLE")
 
     print(f"--- Memory Log Parse Result ({target_dir}) ---")
-    print(f"Success: {success_num}, Fail: {fail_num}, Parse Error: {parse_error_num}, Accuracy: {success_num / (success_num + fail_num + parse_error_num)})")
+    print(f"Success: {success_num}, Fail: {fail_num}, Parse Error: {parse_error_num}, Accuracy: {success_num / (success_num + fail_num + parse_error_num):.2f})")
     return success_num, fail_num, parse_error_num
 
 
@@ -62,7 +62,7 @@ def parse_raw_log(log_path: str, start_id: int, end_id: int):
                     parse_error_num += 1
 
     print(f"--- Raw Log Parse Result ({target_dir}) ---")
-    print(f"Success: {success_num}, Fail: {fail_num}, Parse Error: {parse_error_num}, Accuracy: {success_num / (success_num + fail_num + parse_error_num)}")
+    print(f"Success: {success_num}, Fail: {fail_num}, Parse Error: {parse_error_num}, Accuracy: {success_num / (success_num + fail_num + parse_error_num):.2f}")
     return success_num, fail_num, parse_error_num
 
 # 示例用法示例 (如果需要直接运行脚本):
@@ -70,6 +70,10 @@ if __name__ == "__main__":
     # 请确保目录存在
     # log_dir.mkdir(exist_ok=True)
     # parse_memory_log("wmdp_test", 0, 5)
-    end = 12
-    parse_raw_log("wmdp/Qwen3-235B-A22B-Instruct-2507/raw_test_20260318_154347",0,end)
-    parse_memory_log("wmdp/Qwen3-235B-A22B-Instruct-2507/test_without_judge_20260318_132645",0,end)
+    
+    #
+    for end in range(13):
+        print(end)
+        #parse_raw_log("wmdp/Qwen3-235B-A22B-Instruct-2507/raw_test_20260318_154347",0,end)
+        parse_memory_log("wmdp/Qwen3-235B-A22B-Instruct-2507/test_without_judge_20260318_194750",0,end)
+        parse_memory_log("wmdp/Qwen3-235B-A22B-Instruct-2507/test_without_judge_20260318_205800",0,end)

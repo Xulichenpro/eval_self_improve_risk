@@ -144,6 +144,8 @@ class Memory:
         综合处理函数2
         解析操作指令并按顺序执行修改、合并和标记删除，最后统一执行删除
         """
+        if not response_opt_memory: return
+        
         operations = self._parse_operations(response_opt_memory)
         deleted_ids: Set[int] = set()
         
