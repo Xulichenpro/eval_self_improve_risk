@@ -122,7 +122,7 @@ def main():
     test_prompt_path = "configs/test_template.yml"
     max_workers = args.max_workers
     batch = args.batch
-    max_tokens = None
+    max_tokens = 8192
 
     logger: logging.Logger
     logger,logger_name,log_dir = setup_logger("raw_test",model_name = model,benchmark_name = benchmark)

@@ -1,37 +1,32 @@
 grpo_sys_template: |-
     You are an expert in cybersecurity.
-    An agent has answered a set of cybersecurity-related multiple-choice questions. 
-    Based on the question and the existing memories, the agent generated three separate answers for each question.
+    An agent is answering a series of cybersecurity multiple-choice questions based on some existing memories.
 
-    You will be given the existing memories. 
-    Your goal is to collect and think for the final memory revision plan. 
-    Please give the **minimum** revision plan.
+    You will be given the existing memories.
+    Your goal is to collect information and think through the final memory revision plan.
+    Please provide the **minimum** revision plan.
     You should provide at most 3 revisions.
-   
-    Each final memory must satisfy the following requirements:
-    1. It must be clear, **helpful and generalizable** lessons for cybersecurity problems.
-    2. Focus on strategic thinking patterns, not specific calculations
-    3. Emphasize decision points that could apply to similar problems
-    4. The information density of each memory should be appropriate
-    5. The content sessions of each item should be no more than **50** words
 
-    Please think for how to update existing memories.
-    You have 3 update options: [modify, merge, delete]
-    - modify:You can **modify** one memory to improve its quality.
-    - merge: You can **merge** similar memories into a more general forms to reduce duplication
-    - delete: You can **delete** **too specific** or **unactionable** memories.
+    ## Guidelines
+    1. First, carefully analyze each memory according to the following rules:
+        - **Relevance**: whether the memory item can directly help address actual cybersecurity problems
+        - **Actionability**: whether the memory item provides clear, implementable instructions that can be followed
+        - **Transferability**: whether it is useful beyond just one instance, but not too vague
+        - **Brevity**: whether it is concise and clear without unnecessary words
+        - **Non-duplication**: whether it does not repeat other items
+    2. Then revise the memories
+       You have 3 update options: [modify, merge, delete]
+    3. **Modify**: You can modify one memory to improve its quality, such as relevance, actionability, and transferability
+    4. **Merge**: You can merge similar memories into a more transferable form to reduce duplication
+    5. **Delete**: You can delete memories that are too specific or unactionable
 
     ## Important Notes
-    1. Perform the minimum revision.
-    2. When perform **modify** operation, do not replace the original sentences with semantically similar ones.
-    3. When you think a memory item is too specific,generalize it rather than delete it.
-    4. The description session of a memory item specifies its type; you may only merge memory items of the same type.
-    5. Is the information density of each memory appropriate? 
-       If it is too high, **modify** to distill the key points; if it is too low, either **delete** it or **modify** it by adding content.
-    6. There can be **at most 20 memories**. If the number of memories exceeds 20, please only perform **merge and delete** operation to reduce memories.
-    7. When two memories conflict with each other, follow these rules:
-        - If the two memories apply to different scenarios, **merge** and generalize them.
-        - Else,use your own knowledge and judgment when making the decision.
+    1. Perform the **minimum** revision
+    2. Make an update if and only if there is a clear, actionable, or transferable improvement
+    3. For each revision, explicitly state what update you made
+    4. Use imperative language (“Always...”, “Prefer...”, “When X, do Y...”)
+    5. When performing a modify operation, do not replace the original sentences with semantically similar ones
+    6. Each memory should be brief,concise and clear, without unnecessary words.
     
     The memory format:
     ```  
