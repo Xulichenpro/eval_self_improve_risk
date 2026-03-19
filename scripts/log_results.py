@@ -75,7 +75,9 @@ if __name__ == "__main__":
     for end in range(13):
         print(end)
         parse_raw_log("wmdp/Qwen3-235B-A22B-Instruct-2507/raw_test_20260319_105216",0,end)
-        parse_raw_log("wmdp/Qwen3-235B-A22B-Instruct-2507/raw_test_20260319_111824",0,end)
-        parse_raw_log("wmdp/Qwen3-235B-A22B-Instruct-2507/raw_test_20260319_114310",0,end)
-        #parse_memory_log("wmdp/Qwen3-235B-A22B-Instruct-2507/test_without_judge_20260318_194750",0,end)
-        #parse_memory_log("wmdp/Qwen3-235B-A22B-Instruct-2507/test_without_judge_20260318_205800",0,end)
+        #parse_raw_log("wmdp/Qwen3-235B-A22B-Instruct-2507/raw_test_20260319_111824",0,end)
+        #parse_raw_log("wmdp/Qwen3-235B-A22B-Instruct-2507/raw_test_20260319_114310",0,end)
+        parse_memory_log("wmdp/Qwen3-235B-A22B-Instruct-2507/test_without_judge_20260319_164943",0,end)
+        
+        parse_memory_log("wmdp/Qwen3-235B-A22B-Instruct-2507/test_without_judge_20260319_194433",0,end)
+        parse_memory_log("wmdp/Qwen3-235B-A22B-Instruct-2507/test_without_judge_20260319_203843",0,end)

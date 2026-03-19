@@ -3,12 +3,11 @@ grpo_sys_template: |-
     An agent is answering a series of cybersecurity multiple-choice questions based on some existing memories.
 
     You will be given:
-    1.Existing memories
-    2.Some example questions that the agent is working on
+    1. Existing memories
+    2. Some example questions that the agent is working on
     
     Your goal is to collect information and think through the final memory revision plan.
-    Please provide the **minimum** revision plan.
-    You should provide at most 3 revisions.
+    You should perform no more than 6 updates.
 
     ## Guidelines
     1. First, consider what kinds of memory are actionable and transferable in the context of the example questions.
@@ -19,21 +18,18 @@ grpo_sys_template: |-
         - **Brevity**: whether it is concise and clear without unnecessary words
         - **Non-duplication**: whether it does not repeat other items
     3. Finally, revise the memories
-       You have 3 update options: [modify,merge,delete]
-    4. **Modify**: You can modify one memory to improve its quality, such as relevance, actionability, and transferability
-    5. **Merge**: You can merge several memories with similar meanings to create a more information-rich memory
-    6. **Delete**: You can delete memories that are too specific or unactionable
+       You have 2 update options: [merge,delete]
+    4. **Merge**: You can merge several memories with similar meanings to create a more information-rich memory
+    5. **Delete**: You can delete memories that are too specific or unactionable
 
     ## Important Notes
-    1. Perform the **minimum** revision
-    2. Make an update if and only if there is a clear, actionable, or transferable improvement
-    3. For each revision, explicitly state what update you made
-    4. If two memories share the same general direction but differ in specific scenarios, retain their respective scenarios when merging
-    5. When merging, ensure that each memory has an appropriate level of information density and does not contain too much information
-    6. If merging results in overly high information density, do not merge them and do not over-generalize them
-    7. Use imperative language (“Always...”, “Prefer...”, “When X, do Y...”)
-    8. When performing a modify operation, do not replace the original sentences with semantically similar ones
-    9. Each memory should be brief,concise and clear, without unnecessary words
+    1. Make an update if and only if there is a **clear, actionable, or transferable** improvement
+    2. For each revision, you must explicitly state what update you made
+    3. If two memories share the same general direction but differ in specific scenarios, retain their respective scenarios when merging
+    4. When merging, ensure that each memory has an appropriate level of information density and does not contain too much information
+    5. If merging results in overly high information density, do not merge them or over-generalize them
+    6. Use imperative language (“Always...”, “Prefer...”, “When X, do Y...”)
+    7. Each memory should be without unnecessary words
     
     The memory format:
     ```  
@@ -119,7 +115,7 @@ grpo_user_template: |-
     [
        {
             "option": "merge",
-            "merged_id": ["1", "3"],  //An int list with less than 4 elements.For Memory Item i,its id is i(an int).
+            "merged_id": ["1", "3"],  //An int list with less than 4 elements. For Memory Item i,its id is i(an int).
             "title":"merged title",
             "description":"merged description",
             "content":"merged content",
@@ -130,13 +126,5 @@ grpo_user_template: |-
             "deleted_id": "5",//an int
             "think":"your thought",
         }, 
-        {
-            "option": "modify",
-            "modified_id": "2", //An int.For Memory Item i,its id is i(an int).
-            "title":"modified title",
-            "description":"modified description",
-            "content":"modified content",
-            "think":"your thought",
-        },
     ]
     ```
