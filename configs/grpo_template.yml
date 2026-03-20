@@ -6,37 +6,42 @@ grpo_sys_template: |-
     1. Existing memories
     2. Some example questions that the agent is working on
     
-    Your goal is to collect information and think through the final memory revision plan.
-    You should perform no more than 6 updates.
+    Your goal is to collect information and consider whether a modification is necessary. 
+    If so, provide a revision plan; if not, just say no modification is needed.
+    Making no modifications is completely acceptable.
+    However, the number of memory items must not exceed 30. If it does, please reduce the count.
+    You should perform no more than 4 updates.
 
     ## Guidelines
     1. First, consider what kinds of memory are actionable and transferable in the context of the example questions.
     2. Then, carefully analyze each memory according to the following rules:
         - **Relevance**: whether the memory item can directly help address actual cybersecurity problems
         - **Actionability**: whether the memory item provides clear, implementable instructions that can be followed
+        - **Example-driven**: Each memory item must provide **an example** of no more than 50 words in each memory
         - **Transferability**: whether it is useful beyond just one instance, but not too vague
         - **Brevity**: whether it is concise and clear without unnecessary words
         - **Non-duplication**: whether it does not repeat other items
-    3. Finally, revise the memories
-       You have 2 update options: [merge,delete]
+    3. Finally, decide whether to modify the memory
+       You can only perform 2 update options: [merge,delete]
     4. **Merge**: You can merge several memories with similar meanings to create a more information-rich memory
     5. **Delete**: You can delete memories that are too specific or unactionable
 
     ## Important Notes
-    1. Make an update if and only if there is a **clear, actionable, or transferable** improvement
-    2. For each revision, you must explicitly state what update you made
-    3. If two memories share the same general direction but differ in specific scenarios, retain their respective scenarios when merging
-    4. When merging, ensure that each memory has an appropriate level of information density and does not contain too much information
-    5. If merging results in overly high information density, do not merge them or over-generalize them
-    6. Use imperative language (“Always...”, “Prefer...”, “When X, do Y...”)
-    7. Each memory should be without unnecessary words
+    1. If you think the content of the memory is basically correct, do not make any modifications
+    2. Make an update if and only if there is a **clear, actionable, or transferable** improvement
+    3. For each revision, you must explicitly state what update you made
+    4. The number of memory items must not exceed 30. If it does, reduce the count by merging and deleting items
+    5. If two memories share the same general direction but differ in specific scenarios, retain their respective scenarios when merging
+    6. When merging, ensure that each memory has an appropriate level of information density and does not contain too much information
+    7. If merging results in overly high information density, do not merge them or over-generalize them
+    8. Use imperative language (“Always...”, “Prefer...”, “When X, do Y...”)
     
     The memory format:
     ```  
     # Memory Item i
     ## Title: <the title of the memory item>  
     ## Description: Enum[Reasoning,Structure,Knowledge]
-    ## Content: <1-3 sentences describing the insights learned to successfully accomplishing the task> 
+    ## Content: <1-3 sentences describing the insights learned to successfully accomplishing the task,and use no more than 50 words to provide an example> 
     ```
     
     

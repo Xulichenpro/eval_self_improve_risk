@@ -16,7 +16,7 @@ from models.judge_llm import judge
 from utils.process_benchmark import process_parquet_benchmark
 from utils.set_logger import setup_logger,format_log_without_judge,set_filehandler
 
-DEFAULT_MODEL_NAME = "Qwen3-235B-A22B-Instruct-2507"
+DEFAULT_MODEL_NAME = "DeepSeek-V3.1-p"
 DEFAULT_BENCHMARK = "wmdp"
 MAX_NUM = 20
 
@@ -208,6 +208,7 @@ def main():
                 logger.info("="*30 + " 🚀 Starting New Batch " + "="*30)
                 logger.info(f"📍 Sub-benchmark: {sub_benchmark} | Range: [{start_id} - {start_id + batch - 1}]")
                 new_results,model_results = test_batch_questions(llm,subtest_data,start_id,min(start_id + batch - 1,len(subtest_data) - 1),grpo_memory.format_memories(),test_sys,test_user_template,times,logger,max_workers)
+                
                 memory = extract_memory(memory_llm,grpo_memory.format_memories(),model_results,memory_prompts)
                 if memory :
                     grpo_memory.process_new_memory(memory)
@@ -216,7 +217,7 @@ def main():
                     logger.info(f"📝 Raw Memory Module Output:\n {grpo_memory.format_memories()}")#memories
                     grpo_user_prompt = grpo_user_template.render(memories = grpo_memory.format_memories())
 
-                    if len(grpo_memory.memories) >= 30:
+                    if False:
                         try :
                             response_opt_memory = invoke_with_retry(
                                 memory_llm,
@@ -242,7 +243,7 @@ def main():
                 start_id += batch
                 total_processed_questions += batch
                 batch_id += 1
-                #if start_id >= 300: break
+                if start_id >= 300: break
     except KeyboardInterrupt:
         logger.warning("🛑 User interrupted the process. Saving current metadata...")
     except Exception as e:

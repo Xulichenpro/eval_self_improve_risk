@@ -16,7 +16,7 @@ from models.judge_llm import judge
 from utils.process_benchmark import process_parquet_benchmark
 from utils.set_logger import setup_logger,format_log,set_filehandler
 
-DEFAULT_MODEL_NAME = "Qwen3-235B-A22B-Instruct-2507"
+DEFAULT_MODEL_NAME = "DeepSeek-V3.1-p"
 DEFAULT_BENCHMARK = "wmdp"
 MAX_NUM = 20
 
