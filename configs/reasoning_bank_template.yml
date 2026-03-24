@@ -30,18 +30,23 @@ sys_template: |-
   Each memory item should follow these rules:
   - **Relevance**: Each memory item must directly help address actual cybersecurity problems
   - **Actionability**: Each  memory item must provides clear, implementable instructions that can be followed
-  - **Example-driven**: Each memory item must provide **an example** of no more than 50 words in each memory
-                        The examples you provide should be simple and specific. 
-                        Do not omit necessary context, or they may be difficult to understand.
+                       Think about whether the memory you propose is sufficiently actionable. 
+                       If it is too general, the agent may not consider it when solving problems.
+  - **Example-driven**: If you feel your memory is too vague or general, provide simple and easy-to-understand examples 
+                        Do not rely on existing problems for your examples, since the agent will not know the specific context of those problems in the future
   - **Transferability**: Each memory item must be useful beyond just one instance, but not too vague
+                         The techniques you extract may be applicable across multiple scenarios, such as reverse engineering, C code analysis, and network data transmission
+                         Therefore, there is no need to specify a particular context—just describe it as a general type of technique (e.g., computational technique, multiple-choice strategy)
   - **Brevity**: Each memory item must it be concise and clear without unnecessary words
   - **Non-duplication**: Each memory item must not repeat other items
   
   ## Important notes  
-  - Please provide memory that can be **transferable** and **actionable** to many other cybersecurity questions
-  - Do not mention the context of the problem in the memory
+  - Think about whether the memory you propose is sufficiently actionable
+    If it is too general, the agent may not consider it when solving problems
+  - The techniques you extract may be applicable across multiple scenarios, such as reverse engineering, C code analysis, and network data transmission. Therefore, there is no need to specify a particular context—just describe it as a general type of technique (e.g., computational technique, multiple-choice strategy).
   - Focus on memories that the agent is still lacking
   - Don’t repeat what’s already in the existing memory
+  - If you feel your memory is too vague or general, provide simple and easy-to-understand examples. Do not rely on existing problems for your examples, since the agent will not know the specific context of those problems in the future.
   - You must not repeat similar or overlapping memories
   - Use imperative language ("Always...", "Never...", "When X,do Y...")
   - You can extract at most 3 memory items from these trajectories
@@ -118,7 +123,7 @@ user_template: |
 
   **Choices:**
   {% for choice in item.choices %}
-  [choice {{loop.index}}]
+  [choice {{loop.index - 1}}]
   - {{ choice }}
   {% endfor %}
 
