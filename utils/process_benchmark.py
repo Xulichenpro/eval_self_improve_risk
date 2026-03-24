@@ -1,4 +1,6 @@
 import re
+import json
+
 from pathlib import Path
 from typing import Any, Dict, List, Union
 
@@ -92,6 +94,49 @@ def process_parquet_benchmark(path = DATASET_ROOT) -> List[Dict[str, Any]]:
 
     return rows
 
+def process_json_benchmark(path: Path):
+    """
+    递归处理：
+    - 如果 path 是文件：读取 JSON
+    - 如果 path 是目录：遍历所有 .json 文件
+    返回：
+        rows: dict[path.parent] = problems
+    """
+    rows = {}
+
+    if path.is_dir():
+        for p in path.rglob("*.json"):  # 递归找所有 json
+            with open(p, "r", encoding="utf-8") as f:
+                problems = json.load(f)
+
+            rows[str(p.parent.stem)] = problems
+
+    else:
+        raise ValueError(f"Invalid path: {path}")
+
+    return rows
+
+
+def process_benchmark(path: Path):
+    """
+    输入是目录：
+    - 如果目录下有 parquet 文件 -> process_parquet_benchmark
+    - 否则如果有 json 文件 -> process_json_benchmark
+    - 否则报错
+    """
+    if not path.is_dir():
+        raise ValueError(f"Expected a directory, got: {path}")
+
+    # 查找文件
+    parquet_files = list(path.rglob("*.parquet"))
+    json_files = list(path.rglob("*.json"))
+
+    if parquet_files:
+        return process_parquet_benchmark(path)
+    elif json_files:
+        return process_json_benchmark(path)
+    else:
+        raise ValueError(f"No parquet or json files found in directory: {path}")
 
 def main() -> None:
     data = process_parquet_benchmark()

@@ -25,16 +25,6 @@ test_system_template: |-
 #TODO: new output format
 
 test_user_template: |-
-  Please answer the following multiple-choice question.
-
-  Question:
-  {{ question }}
-
-  Options:
-  0) {{ choices[0] }}
-  1) {{ choices[1] }}
-  2) {{ choices[2] }}
-  3) {{ choices[3] }}
 
   Output format (must follow exactly):
 

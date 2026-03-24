@@ -4,6 +4,8 @@ import yaml
 import logging
 import argparse
 
+import evaluation
+
 from pathlib import Path
 from jinja2 import Template
 from typing import Any
@@ -13,17 +15,16 @@ from langchain_openai import ChatOpenAI
 from models.llm import get_llm,invoke_with_retry
 from memory.grpo_memory import Memory
 from models.judge_llm import judge
-from utils.process_benchmark import process_parquet_benchmark
+from utils.process_benchmark import process_benchmark
 from utils.set_logger import setup_logger,format_log_without_judge,set_filehandler
 
 DEFAULT_MODEL_NAME = "Qwen3-235B-A22B-Instruct-2507"
-DEFAULT_BENCHMARK = "wmdp"
+DEFAULT_BENCHMARK = "crwd_meta"
 MAX_NUM = 20
 
-def test_single_question(llm,data,memories,test_sys,test_user_template):
+def test_single_question(llm,data,test_class,memories,test_sys,test_user_template):
+    test_user_template = Template(test_class.create_prompt(data) + '\n' + test_user_template)
     test_user = test_user_template.render(
-        question = data["question"],
-        choices = data["choices"],
         memory = memories,
     )
     try:
@@ -36,11 +37,11 @@ def test_single_question(llm,data,memories,test_sys,test_user_template):
         response = "The agent failed to get an answer due to connection error."
     return response
 
-def multitest_single_question(llm,data,memories,test_sys,test_user_template,times,max_workers = 10):
+def multitest_single_question(llm,data,test_class,memories,test_sys,test_user_template,times,max_workers = 10):
     responses = []
     with ThreadPoolExecutor(max_workers = max_workers) as executor:
         futures = {
-            executor.submit(test_single_question,llm,data,memories,test_sys,test_user_template):id
+            executor.submit(test_single_question,llm,data,test_class,memories,test_sys,test_user_template):id
             for id in range(times)
         }
         for future in as_completed(futures):
@@ -48,24 +49,13 @@ def multitest_single_question(llm,data,memories,test_sys,test_user_template,time
     
     #exclude judge result
     corrects = []
-    for response in responses: 
-        answer_pattern = r"</scrachpad>.*?<answer>(.*?)</answer>"
-        correct = 2
-        match = re.search(answer_pattern, response.strip(), re.DOTALL)
-        if match :
-            try:
-                answer = int(match.group(1).strip())
-                if answer == data["answer"]:
-                    correct = 1
-                else:
-                    correct = 0
-            except:
-                correct = 2
+    for response in responses:
+        correct = test_class.check_answer(response,data)
         corrects.append(correct)
     
     return (responses,corrects)
 
-def test_batch_questions(llm,test_data,start_id,end_id,memories,test_sys,test_user_template,times,logger,max_workers = 10):
+def test_batch_questions(llm,test_data,test_class,start_id,end_id,memories,test_sys,test_user_template,times,logger,max_workers = 10):
     results = {
         "success":[],
         "failure":{"answer":[],"parse":[]}
@@ -73,7 +63,7 @@ def test_batch_questions(llm,test_data,start_id,end_id,memories,test_sys,test_us
     model_results = {}
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {
-            executor.submit(multitest_single_question,llm,test_data[id],memories,test_sys,test_user_template,times,max_workers):id
+            executor.submit(multitest_single_question,llm,test_data[id],test_class,memories,test_sys,test_user_template,times,max_workers):id
             for id in range(start_id,end_id + 1)
         }
         
@@ -84,14 +74,14 @@ def test_batch_questions(llm,test_data,start_id,end_id,memories,test_sys,test_us
             logger.info(logger_info)
             id = futures[future]
             model_results[id] = {
-                "question":test_data[id]["question"],
-                "choices":test_data[id]["choices"],
+                "question":test_data[id].get("question",None),
+                "choices":test_data[id]["options"],
                 "responses":responses
             }
             for response,correct in zip(responses,corrects):
                 status = {
                     "question":test_data[id]["question"],
-                    "choices":test_data[id]["choices"],
+                    "choices":test_data[id]["options"],
                     "response":response
                 }
                 if correct == 1:
@@ -127,7 +117,7 @@ def main():
     args = parser.parse_args()
 
     model = args.model
-    benchmark = args.benchmark
+    bench = args.benchmark
     times = args.times
     test_prompt_path = "configs/test_template.yml"
     memory_prompt_path = "configs/reasoning_bank_template.yml"
@@ -138,7 +128,7 @@ def main():
     temperature = 0.7
 
     logger: logging.Logger
-    logger,logger_name,log_dir = setup_logger("test_without_judge",model_name = model,benchmark_name = benchmark)
+    logger,logger_name,log_dir = setup_logger("test_without_judge",model_name = model,benchmark_name = bench)
     set_filehandler(logger,log_dir,"setup_info")
     logger.info("="*20 + " 🛠️  System Initialization " + "="*20)
     try:
@@ -148,16 +138,20 @@ def main():
         #embedding_model = SentenceTransformer("BAAI/bge-small-en-v1.5")
         grpo_memory = Memory()
         logger.info("🧠 Memory module: Initialized successfully")
-        test_data = process_parquet_benchmark("dataset/" + benchmark)
+        
+        evaluation.benchmark.Benchmark.register_benchmark(evaluation.malware_analysis.MalwareAnalysisBenchmark)
+        
+        test_dir = Path("dataset/" + bench)
+        test_data = process_benchmark(test_dir)
         sub_task_count = len(test_data)
         total_questions = sum(len(v) for v in test_data.values())
-        logger.info(f"📊 Dataset loaded: '{benchmark}' | Sub-tasks: {sub_task_count} | Total Questions: {total_questions}")
+        logger.info(f"📊 Dataset loaded: '{bench}' | Sub-tasks: {sub_task_count} | Total Questions: {total_questions}")
         #answer = invoke_with_retry(llm,{"role":"user","content":"introduce yourself"})
         #print(answer)
         with open(test_prompt_path,"r",encoding = "utf-8") as f:
             prompts = yaml.safe_load(f)
         test_sys = prompts["test_system_template"]
-        test_user_template = Template(prompts["test_user_template"] +  prompts["user_template_with_memory"])
+        test_user_template = prompts["test_user_template"] +  prompts["user_template_with_memory"]
        
         with open(memory_prompt_path,"r",encoding = "utf-8") as f:
             memory_prompts = yaml.safe_load(f)
@@ -200,14 +194,26 @@ def main():
     batch_id = 0
     total_processed_questions = 0
     try :
-        for sub_benchmark,subtest_data in test_data.items():  
+        for sub_benchmark,subtest_data in test_data.items(): 
+            print(sub_benchmark)
+            if not str(sub_benchmark).startswith("malware"): continue
+
+            cls = evaluation.benchmark.Benchmark._registered_benchmarks[sub_benchmark]
+            config = evaluation.benchmark.BenchmarkConfig(
+                test_cases_path = test_dir / sub_benchmark,
+                truncate_input = True,
+                stat_path = None,
+                input_modality = None,
+            )
+
+            test_class = cls(config) 
             start_id = 0 
-            if not sub_benchmark.startswith("wmdp-cyber"):continue
+            if not sub_benchmark.startswith("malware"):continue
             while start_id < len(subtest_data):
                 set_filehandler(logger,log_dir,f"batch_{batch_id}")
                 logger.info("="*30 + " 🚀 Starting New Batch " + "="*30)
                 logger.info(f"📍 Sub-benchmark: {sub_benchmark} | Range: [{start_id} - {start_id + batch - 1}]")
-                new_results,model_results = test_batch_questions(llm,subtest_data,start_id,min(start_id + batch - 1,len(subtest_data) - 1),grpo_memory.format_memories(),test_sys,test_user_template,times,logger,max_workers)
+                new_results,model_results = test_batch_questions(llm,subtest_data,test_class,start_id,min(start_id + batch - 1,len(subtest_data) - 1),grpo_memory.format_memories(),test_sys,test_user_template,times,logger,max_workers)
                 memory = extract_memory(memory_llm,grpo_memory.format_memories(),model_results,memory_prompts)
                 if memory :
                     grpo_memory.process_new_memory(memory)
@@ -253,7 +259,7 @@ def main():
     try:
         metadata = {
             "model":model,
-            "benchmark":benchmark,
+            "benchmark":bench,
             "times":times,
             "max_workers":max_workers,
             "correct_num":correct_num,

@@ -1,23 +1,20 @@
-import re
 import json
 import yaml
 import logging
 import argparse
 
+import evaluation
+
 from pathlib import Path
-from jinja2 import Template
-from typing import Any
 from concurrent.futures import ThreadPoolExecutor,as_completed
 from langchain_openai import ChatOpenAI
 
 from models.llm import get_llm,invoke_with_retry
-from memory.grpo_memory import Memory
-from models.judge_llm import judge
-from utils.process_benchmark import process_parquet_benchmark
+from utils.process_benchmark import process_benchmark
 from utils.set_logger import setup_logger,format_log,set_filehandler
 
-DEFAULT_MODEL_NAME = "DeepSeek-V3.1-p"
-DEFAULT_BENCHMARK = "wmdp"
+DEFAULT_MODEL_NAME = "Qwen3-235B-A22B-Instruct-2507"
+DEFAULT_BENCHMARK = "crwd_meta"
 MAX_NUM = 20
 
 HUMAN_MEMORY = '''
@@ -35,11 +32,8 @@ please discuss if you want to use each memory item or not.
 ## Content: Construct a clear, linear chain of logic from known facts to conclusion, eliminating redundant or off-track exploration that delays resolution.
 '''
 
-def test_single_question(llm,data,test_sys,test_user_template):
-    test_user = test_user_template.render(
-        question = data["question"],
-        choices = data["choices"],
-    )
+def test_single_question(llm,data,test_class,test_sys,test_user_template):
+    test_user = test_class.create_prompt(data) + '\n' + test_user_template
     
     response = invoke_with_retry(
         llm,
@@ -48,11 +42,11 @@ def test_single_question(llm,data,test_sys,test_user_template):
     )
     return response
 
-def multitest_single_question(llm,data,test_sys,test_user_template,times,max_workers = 10):
+def multitest_single_question(llm,data,test_class,test_sys,test_user_template,times,max_workers = 10):
     responses = []
     with ThreadPoolExecutor(max_workers = max_workers) as executor:
         futures = {
-            executor.submit(test_single_question,llm,data,test_sys,test_user_template):id
+            executor.submit(test_single_question,llm,data,test_class,test_sys,test_user_template):id
             for id in range(times)
         }
         for future in as_completed(futures):
@@ -60,30 +54,19 @@ def multitest_single_question(llm,data,test_sys,test_user_template,times,max_wor
     
     corrects = []
     for response in responses:
-        answer_pattern = r"</scrachpad>.*?<answer>(.*?)</answer>"
-        correct = 2
-        match = re.search(answer_pattern, response, re.S)
-        if match :
-            try:
-                answer = int(match.group(1).strip())
-                if answer == data["answer"]:
-                    correct = 1
-                else:
-                    correct = 0
-            except:
-                correct = 2
+        correct = test_class.check_answer(response,data)
         corrects.append(correct)
 
     return (responses,corrects)
 
-def test_batch_questions(llm,test_data,start_id,end_id,test_sys,test_user_template,times,logger,max_workers = 10):
+def test_batch_questions(llm,test_data,test_class,start_id,end_id,test_sys,test_user_template,times,logger,max_workers = 10):
     results = {
         "success":[],
         "failure":{"answer":[],"parse":[]}
     }
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {
-            executor.submit(multitest_single_question,llm,test_data[id],test_sys,test_user_template,times,max_workers):id
+            executor.submit(multitest_single_question,llm,test_data[id],test_class,test_sys,test_user_template,times,max_workers):id
             for id in range(start_id,end_id + 1)
         }
         
@@ -94,8 +77,8 @@ def test_batch_questions(llm,test_data,start_id,end_id,test_sys,test_user_templa
                 logger_info = format_log(test_data[id], [response], correct)
                 logger.info(logger_info)
                 status = {
-                    "question":test_data[id]["question"],
-                    "choices":test_data[id]["choices"],
+                    "question":test_data[id].get("question",None),
+                    "options":test_data[id]["options"],
                     "response":response
                 }
                 if correct == 1:
@@ -117,30 +100,34 @@ def main():
     args = parser.parse_args()
 
     model = args.model
-    benchmark = args.benchmark
+    bench = args.benchmark
     times = args.times
     test_prompt_path = "configs/test_template.yml"
     max_workers = args.max_workers
     batch = args.batch
     max_tokens = 8192
+    temperature = 0.7
 
     logger: logging.Logger
-    logger,logger_name,log_dir = setup_logger("raw_test",model_name = model,benchmark_name = benchmark)
+    logger,logger_name,log_dir = setup_logger("raw_test",model_name = model,benchmark_name = bench)
     set_filehandler(logger,log_dir,"setup_info")
     logger.info("="*20 + " 🛠️  System Initialization " + "="*20)
     try:
-        llm = get_llm(model_name = model,temperature = 0.7,max_tokens=max_tokens)
-        logger.info(f"🤖 Model loaded: [ {model} ] (Temp: 0.7) (Max_tokens = {max_tokens})")
+        llm = get_llm(model_name = model,temperature = temperature,max_tokens=max_tokens)
+        logger.info(f"🤖 Model loaded: [ {model} ] (Temp: {temperature}) (Max_tokens = {max_tokens})")
         
-        test_data = process_parquet_benchmark("dataset/" + benchmark)
+        evaluation.benchmark.Benchmark.register_benchmark(evaluation.malware_analysis.MalwareAnalysisBenchmark)
+        
+        test_dir = Path("dataset/" + bench)
+        test_data = process_benchmark(test_dir)
         sub_task_count = len(test_data)
         total_questions = sum(len(v) for v in test_data.values())
-        logger.info(f"📊 Dataset loaded: '{benchmark}' | Sub-tasks: {sub_task_count} | Total Questions: {total_questions}")
+        logger.info(f"📊 Dataset loaded: '{bench}' | Sub-tasks: {sub_task_count} | Total Questions: {total_questions}")
         
         with open(test_prompt_path,"r",encoding = "utf-8") as f:
             prompts = yaml.safe_load(f)
         test_sys = prompts["test_system_template"]
-        test_user_template = Template(prompts["test_user_template"])
+        test_user_template = prompts["test_user_template"]
 
         # 1. 准备要打印的 Prompt 字典，方便统一记录
         all_prompts = {
@@ -171,13 +158,24 @@ def main():
     batch_id = 0
     try :
         for sub_benchmark,subtest_data in test_data.items():  
+            print(sub_benchmark)
+            if not str(sub_benchmark).startswith("malware"): continue
+
+            cls = evaluation.benchmark.Benchmark._registered_benchmarks[sub_benchmark]
+            config = evaluation.benchmark.BenchmarkConfig(
+                test_cases_path = test_dir / sub_benchmark,
+                truncate_input = True,
+                stat_path = None,
+                input_modality = None,
+            )
+
+            test_class = cls(config)
             start_id = 0 
-            if not sub_benchmark.startswith("wmdp-cyber"):continue
             while start_id < len(subtest_data):
                 set_filehandler(logger,log_dir,f"batch_{batch_id}")
                 logger.info("="*30 + " 🚀 Starting New Batch " + "="*30)
                 logger.info(f"📍 Sub-benchmark: {sub_benchmark} | Range: [{start_id} - {start_id + batch - 1}]")
-                new_results = test_batch_questions(llm,subtest_data,start_id,start_id + batch - 1,test_sys,test_user_template,times,logger,max_workers)
+                new_results = test_batch_questions(llm,subtest_data,test_class,start_id,start_id + batch - 1,test_sys,test_user_template,times,logger,max_workers)
                 start_id += batch
                 correct_num += len(new_results["success"])
                 false_num += len(new_results["failure"]["answer"])
@@ -192,7 +190,7 @@ def main():
     try:
         metadata = {
             "model":model,
-            "benchmark":benchmark,
+            "benchmark":bench,
             "times":times,
             "max_workers":max_workers,
             "correct_num":correct_num,
