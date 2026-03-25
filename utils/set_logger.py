@@ -87,7 +87,7 @@ def set_filehandler(logger: logging.Logger, log_dir, file_name: str):
     # 5. 加入 logger
     logger.addHandler(file_handler)
 
-def format_log(data, responses, correct, goodcase_id=None, badcase_id=None):
+def format_log(data, responses, correct, jaccard_similarity = None, goodcase_id=None, badcase_id=None):
     """
     格式化评估日志，支持标注榜样样例(goodcase)和反面教材(badcase)。
     
@@ -163,14 +163,17 @@ def format_log(data, responses, correct, goodcase_id=None, badcase_id=None):
         log.append(sub_line)
         log.append(safe_str(responses[-1]))
 
+    if not jaccard_similarity:
+        jaccard_similarity = "UNKNOWN"
+
     # Footer summary
     log.append(f"\n{line}")
-    log.append(f"🏁 SUMMARY  |   {status_text}")
+    log.append(f"🏁 SUMMARY  |   {status_text} | jaccard_similarity: {jaccard_similarity}")
     log.append(f"{line}\n")
 
     return "\n".join(log)
 
-def format_log_without_judge(data, responses, corrects, goodcase_id=None, badcase_id=None):
+def format_log_without_judge(data, responses, corrects, similarities = None, goodcase_id=None, badcase_id=None):
     """
     格式化评估日志，支持多轮回答状态展示，并区分 Agent 回答与最终判定。
     
@@ -181,7 +184,7 @@ def format_log_without_judge(data, responses, corrects, goodcase_id=None, badcas
     :param badcase_id: 反面教材在 responses 中的索引
     """
     question = data.get("question", "")
-    choices = data.get("choices", [])
+    choices = data.get("options", [])
 
     line = "═" * 76
     sub_line = "─" * 76
@@ -236,18 +239,20 @@ def format_log_without_judge(data, responses, corrects, goodcase_id=None, badcas
     else:
         # 1. 迭代 zip(responses[:-1], corrects) 展示每轮回答及其正误
         agent_responses = responses
-        for i, (resp, corr_code) in enumerate(zip(agent_responses, corrects)):
+        if not similarities:
+            similarities = ["UNKNOWN" for _ in range(len(responses))]
+        for i, (resp, corr_code, similarity) in enumerate(zip(agent_responses, corrects,similarities)):
             tag = get_tag(i)
             status_text = get_status_text(corr_code)
-            log.append(f"[Agent {i+1}] | Result: {status_text}{tag}")
+            log.append(f"[Agent {i+1}] | Result: {status_text}{tag} | jaccard_similarity:{similarity} ")
             log.append(safe_str(resp))
             log.append("")
 
     # 3. Footer summary: 仅输出 Agent 每轮的正误，不输出 Judge 的
     log.append(f"\n{line}")
     summary_parts = []
-    for i, corr_code in enumerate(corrects):
-        summary_parts.append(f"Agent {i+1}: {get_status_text(corr_code)}")
+    for i, (corr_code, similarity) in enumerate(zip(corrects,similarities)):
+        summary_parts.append(f"Agent {i+1}: {get_status_text(corr_code)} | jaccard_similarity:{similarity} ")
     
     log.append(f"🏁 SUMMARY: {' | '.join(summary_parts)}")
     log.append(f"{line}\n")

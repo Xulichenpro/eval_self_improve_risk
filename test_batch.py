@@ -53,17 +53,21 @@ def multitest_single_question(llm,data,test_class,test_sys,test_user_template,ti
             responses.append(future.result())
     
     corrects = []
+    similarities = []
     for response in responses:
-        correct = test_class.check_answer(response,data)
+        correct,similarity = test_class.check_answer(response,data)
         corrects.append(correct)
+        similarities.append(similarity)
 
-    return (responses,corrects)
+    return (responses,corrects,similarities)
 
 def test_batch_questions(llm,test_data,test_class,start_id,end_id,test_sys,test_user_template,times,logger,max_workers = 10):
     results = {
         "success":[],
         "failure":{"answer":[],"parse":[]}
     }
+    similarity_results = []
+    
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {
             executor.submit(multitest_single_question,llm,test_data[id],test_class,test_sys,test_user_template,times,max_workers):id
@@ -71,10 +75,12 @@ def test_batch_questions(llm,test_data,test_class,start_id,end_id,test_sys,test_
         }
         
         for future in as_completed(futures):
-            responses,corrects = future.result()
+            responses,corrects,similarities = future.result()
+            similarity_results.extend(similarities)
+
             id = futures[future]
-            for response,correct in zip(responses,corrects):
-                logger_info = format_log(test_data[id], [response], correct)
+            for response,correct,similarity in zip(responses,corrects,similarities):
+                logger_info = format_log(test_data[id], [response], correct, jaccard_similarity = similarity)
                 logger.info(logger_info)
                 status = {
                     "question":test_data[id].get("question",None),
@@ -87,7 +93,7 @@ def test_batch_questions(llm,test_data,test_class,start_id,end_id,test_sys,test_
                     results["failure"]["answer"].append(status)
                 else:
                     results["failure"]["parse"].append(status)
-    return results
+    return results,similarity_results
 
 def main():
     parser = argparse.ArgumentParser(description="setup the parameter for test")
@@ -155,6 +161,7 @@ def main():
         logger.warning(f"🛑 Setup fail:{e}")
     
     correct_num, false_num, parse_error_num = 0,0,0
+    similarities = []
     batch_id = 0
     try :
         for sub_benchmark,subtest_data in test_data.items():  
@@ -175,7 +182,9 @@ def main():
                 set_filehandler(logger,log_dir,f"batch_{batch_id}")
                 logger.info("="*30 + " 🚀 Starting New Batch " + "="*30)
                 logger.info(f"📍 Sub-benchmark: {sub_benchmark} | Range: [{start_id} - {start_id + batch - 1}]")
-                new_results = test_batch_questions(llm,subtest_data,test_class,start_id,start_id + batch - 1,test_sys,test_user_template,times,logger,max_workers)
+                
+                new_results,new_similarities = test_batch_questions(llm,subtest_data,test_class,start_id,start_id + batch - 1,test_sys,test_user_template,times,logger,max_workers)
+                similarities.extend(new_similarities)
                 start_id += batch
                 correct_num += len(new_results["success"])
                 false_num += len(new_results["failure"]["answer"])
@@ -187,6 +196,8 @@ def main():
     except Exception as e:
         logger.error(f"💥 Unexpected system crash: {e}", exc_info=True)
             
+    avg_similarity = sum(similarities) / len(similarities) if len(similarities) > 0 else 0
+    
     try:
         metadata = {
             "model":model,
@@ -195,7 +206,8 @@ def main():
             "max_workers":max_workers,
             "correct_num":correct_num,
             "false_num":false_num,
-            "parse_error_num":parse_error_num
+            "parse_error_num":parse_error_num,
+            "avg_jaccard_similarity":avg_similarity,
         }
 
         meta_file =f"{log_dir}/{logger_name}.json"

@@ -49,11 +49,13 @@ def multitest_single_question(llm,data,test_class,memories,test_sys,test_user_te
     
     #exclude judge result
     corrects = []
+    similarities = []
     for response in responses:
-        correct = test_class.check_answer(response,data)
+        correct,similarity = test_class.check_answer(response,data)
         corrects.append(correct)
+        similarities.append(similarity)
     
-    return (responses,corrects)
+    return (responses,corrects,similarities)
 
 def test_batch_questions(llm,test_data,test_class,start_id,end_id,memories,test_sys,test_user_template,times,logger,max_workers = 10):
     results = {
@@ -61,6 +63,8 @@ def test_batch_questions(llm,test_data,test_class,start_id,end_id,memories,test_
         "failure":{"answer":[],"parse":[]}
     }
     model_results = {}
+    similarity_results = []
+
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {
             executor.submit(multitest_single_question,llm,test_data[id],test_class,memories,test_sys,test_user_template,times,max_workers):id
@@ -68,9 +72,11 @@ def test_batch_questions(llm,test_data,test_class,start_id,end_id,memories,test_
         }
         
         for future in as_completed(futures):
-            responses,corrects = future.result()
+            responses,corrects,similarities = future.result()
+            similarity_results.extend(similarities)
+
             id = futures[future]
-            logger_info = format_log_without_judge(test_data[id], responses, corrects)
+            logger_info = format_log_without_judge(test_data[id], responses, corrects,similarities=similarities)
             logger.info(logger_info)
             id = futures[future]
             model_results[id] = {
@@ -90,7 +96,7 @@ def test_batch_questions(llm,test_data,test_class,start_id,end_id,memories,test_
                     results["failure"]["answer"].append(status)
                 else:
                     results["failure"]["parse"].append(status)
-    return results,model_results
+    return results,model_results,similarity_results
 
 def extract_memory(llm,memories,results,memory_prompts):
     user = Template(memory_prompts["user_template"]).render(results = results,memories = memories)
@@ -191,6 +197,7 @@ def main():
     
 
     correct_num, false_num, parse_error_num = 0,0,0
+    similarities = []
     batch_id = 0
     total_processed_questions = 0
     try :
@@ -213,7 +220,8 @@ def main():
                 set_filehandler(logger,log_dir,f"batch_{batch_id}")
                 logger.info("="*30 + " 🚀 Starting New Batch " + "="*30)
                 logger.info(f"📍 Sub-benchmark: {sub_benchmark} | Range: [{start_id} - {start_id + batch - 1}]")
-                new_results,model_results = test_batch_questions(llm,subtest_data,test_class,start_id,min(start_id + batch - 1,len(subtest_data) - 1),grpo_memory.format_memories(),test_sys,test_user_template,times,logger,max_workers)
+                new_results,model_results,new_similarities = test_batch_questions(llm,subtest_data,test_class,start_id,min(start_id + batch - 1,len(subtest_data) - 1),grpo_memory.format_memories(),test_sys,test_user_template,times,logger,max_workers)
+                similarities.extend(new_similarities)
                 memory = extract_memory(memory_llm,grpo_memory.format_memories(),model_results,memory_prompts)
                 if memory :
                     grpo_memory.process_new_memory(memory)
@@ -250,12 +258,14 @@ def main():
                 start_id += batch
                 total_processed_questions += batch
                 batch_id += 1
-                if start_id >= 300: break
+                if start_id >= 100: break
     except KeyboardInterrupt:
         logger.warning("🛑 User interrupted the process. Saving current metadata...")
     except Exception as e:
         logger.error(f"💥 Unexpected system crash: {e}", exc_info=True)
             
+    avg_similarity = sum(similarities) / len(similarities) if len(similarities) > 0 else 0
+    
     try:
         metadata = {
             "model":model,
@@ -264,7 +274,8 @@ def main():
             "max_workers":max_workers,
             "correct_num":correct_num,
             "false_num":false_num,
-            "parse_error_num":parse_error_num
+            "parse_error_num":parse_error_num,
+            "avg_jaccard_similarity":avg_similarity,
         }
 
         meta_file =f"{log_dir}/{logger_name}.json"

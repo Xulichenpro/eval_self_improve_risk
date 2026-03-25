@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import cast, Dict, List, Optional, Tuple, Union
 
 from .benchmark import Benchmark, BenchmarkConfig
+from utils.eval_utils import jaccard_similarity
 
 class ThreatIntelReasoningBenchmark(Benchmark):
     """
@@ -80,17 +81,18 @@ class ThreatIntelReasoningBenchmark(Benchmark):
 
         # 不能解析 → 返回1
         if not match:
-            return 2
+            return 2,0
 
         # 提取答案字母
         answer_str = match.group(1).strip()
         extracted = [x.upper() for x in re.findall(r"[A-Za-z]", answer_str)]
-
+        
         # 正确答案
         correct = data.get("correct_options", [])
+        similarity = jaccard_similarity(extracted,set(correct))
 
         # 完全相等才正确
         if set(extracted) == set(correct):
-            return 1
+            return 1,similarity
         else:
-            return 0
+            return 0,similarity
