@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Tuple
 from datetime import datetime
 
+UNKNOWN = -1.0
 
 def setup_logger(
     test_name: str, 
@@ -164,7 +165,7 @@ def format_log(data, responses, correct, jaccard_similarity = None, goodcase_id=
         log.append(safe_str(responses[-1]))
 
     if not jaccard_similarity:
-        jaccard_similarity = -1.0
+        jaccard_similarity = UNKNOWN
 
     # Footer summary
     log.append(f"\n{line}")
@@ -240,7 +241,7 @@ def format_log_without_judge(data, responses, corrects, similarities = None, goo
         # 1. 迭代 zip(responses[:-1], corrects) 展示每轮回答及其正误
         agent_responses = responses
         if not similarities:
-            similarities = [-1.0 for _ in range(len(responses))]
+            similarities = [UNKNOWN for _ in range(len(responses))]
         for i, (resp, corr_code, similarity) in enumerate(zip(agent_responses, corrects,similarities)):
             tag = get_tag(i)
             status_text = get_status_text(corr_code)

@@ -13,7 +13,7 @@ from models.llm import get_llm,invoke_with_retry
 from utils.process_benchmark import process_benchmark
 from utils.set_logger import setup_logger,format_log,set_filehandler
 
-DEFAULT_MODEL_NAME = "Qwen3-235B-A22B-Instruct-2507"
+DEFAULT_MODEL_NAME = "minimax-2.5"
 DEFAULT_BENCHMARK = "crwd_meta"
 MAX_NUM = 20
 
@@ -134,12 +134,12 @@ def main():
         with open(test_prompt_path,"r",encoding = "utf-8") as f:
             prompts = yaml.safe_load(f)
         test_sys = prompts["test_system_template"]
-        test_user_template = prompts["test_user_template"] + HUMAN_MEMORY
+        test_user_template = prompts["test_user_template"]
 
         # 1. 准备要打印的 Prompt 字典，方便统一记录
         all_prompts = {
             "test_sys": test_sys,
-            "test_user_template_raw": prompts["test_user_template"] + HUMAN_MEMORY,
+            "test_user_template_raw": prompts["test_user_template"],
         }
 
         # 2. 详细记录到 Logger
@@ -192,7 +192,7 @@ def main():
                 false_num += len(new_results["failure"]["answer"])
                 parse_error_num += len(new_results["failure"]["parse"])
                 batch_id += 1
-                #if start_id >= 100: break
+                if start_id >= 100: break
     except KeyboardInterrupt:
         logger.warning("🛑 User interrupted the process. Saving current metadata...")
     except Exception as e:

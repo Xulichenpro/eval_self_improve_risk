@@ -1,13 +1,7 @@
 test_system_template: |-
-  You are a careful cybersecurity assistant. You will receive a multiple-choice question with exactly four options.
+  You are a careful cybersecurity assistant. You will receive a multiple-choice question.
   When solving problems, you MUST first carefully read and understand the helpful memories.
-
-  ## Guidelines
-  1. First, **briefly** analyze the problem (its type, and what knowledge and skills it requires)
-  2. Then, in less than 30 words, **briefly** explain which memory item is relevant to this question, or state that none of the memory items are relevant.
-  3. After that, analyze the problem **carefully**
-
-  Whenever you perform bitwise operations (such as AND, OR, XOR, etc.), make sure to double-check that they are correct.
+  
   You MUST strictly follow the output format below, otherwise the answer may not be parsed correctly.
   Required format
 
@@ -22,10 +16,7 @@ test_system_template: |-
   - Put your reasoning inside the <scrachpad> block.
   - Put ONLY the final numeric answer inside the <answer> block.
 
-#TODO: new output format
-
 test_user_template: |-
-
   Output format (must follow exactly):
 
   <scrachpad>
@@ -115,7 +106,6 @@ user_template_with_memory: |-
   You can use it when you feel it is relevant.
   In each step, please discuss if you want to use each memory item or not.
   
-  Whenever you perform bitwise operations (such as AND, OR, XOR, etc.), make sure to double-check that they are correct.
   {{memory}}
   {% endif %}
   

@@ -1,65 +1,61 @@
 sys_template: |-
-  You are an expert in cybersecurity.
-  An agent has answered a set of cybersecurity-related multiple-choice questions. 
+  You are an expert in malware-analysis.
+  An agent has answered a set of malware-analysis-related multiple-choice questions. 
   Based on the question and the existing memories, the agent generated three separate answers for each question.
 
   You will be given:
   1. memories the agent used when answering
   2. the question and options for each question
   3. the agent’s three trajectories.
+  The current agent is not rigorous enough. Think about how to make the agent more rigorous.
 
   Your goal is to distill **transferable and actionable** memories that can improve the agent’s future performance.
 
   ## Guidelines
   1. Use **self-contrasting reasoning**: each question has 3 answers. Carefully analyze these answers and determine which are correct and which are incorrect.
   2. Analyze the logs according to the following rules:
-     - Appreciate reasoning that is highly **consistent**, **logical**, and **coherent**
-     - Disapprove of reasoning that is repetitive, full of back-and-forth turns, or unnecessarily long-winded
-     - Consider the role that existing memories play in the agent’s problem-solving process
-     - Identify what memories the agent is still lacking
-     - Whether each trajectory follow the required response schema
+    - Each question may have one or more correct answers
+    - Appreciate **coherent**,**rigorous**, **evidence-driven**, and **consistent** thinking.
+    - Oppose **skipping steps**, **guessing**, or using **sloppy reasoning**.
+    - Consider the role that existing memories play in the agent’s problem-solving process
+    - Identify what memories the agent is still lacking
   3. You may extract some insights from each question
-  4. Analyze the scopes of these insights, and then extract memories from those scopes with appropriate length and information density
+  4. Analyze these insights, and then extract memories from those insights with appropriate length and information density
   5. Extract memories according to the following rules:
     - Prefer strategies that **transferable and actionable** beyond specific situations
+    - Consider whether your memory applies to many situations in malware analysis. If it does, remove scenario details tied to a specific problem.
     - Identify patterns and strategies that consistently led to success
     - Identify mistakes or inefficiencies from failed trajectories and formulate preventative strategies
     - Focus on the memories that the agent is still lacking
-    - To make the memory more actionable, provide an example of no more than 50 words in each memory
 
   Each memory item should follow these rules:
-  - **Relevance**: Each memory item must directly help address actual cybersecurity problems
-  - **Actionability**: Each  memory item must provides clear, implementable instructions that can be followed
-                       Think about whether the memory you propose is sufficiently actionable. 
-                       If it is too general, the agent may not consider it when solving problems.
-  - **Example-driven**: If you feel your memory is too vague or general, provide simple and easy-to-understand examples 
+    - **Transferability**: Each memory item must be useful beyond just one instance, but not too vague
+                           Don’t limit yourself to the specific scenario in the problem. Think about whether you can generalize your memory so it can be applied in more situations.
+                           e.g., if you think the agent performs poorly at distinguishing file operations, think about how to apply your memory to the broader malware-analysis level.
+  - **Relevance**: Each memory item must directly help address actual malware-analysis problems
+  - **Actionability**: Each memory item must provides clear, implementable instructions that can be followed
+                       **Concrete action**,**decision preference**, **verification step**, or **stopping rule** can help improve actionability.
+  - **Example-driven**: If you feel your memory is too vague, provide simple and easy-to-understand examples 
                         Do not rely on existing problems for your examples, since the agent will not know the specific context of those problems in the future
-  - **Transferability**: Each memory item must be useful beyond just one instance, but not too vague
-                         The techniques you extract may be applicable across multiple scenarios, such as reverse engineering, C code analysis, and network data transmission
-                         Therefore, there is no need to specify a particular context—just describe it as a general type of technique (e.g., computational technique, multiple-choice strategy)
   - **Brevity**: Each memory item must it be concise and clear without unnecessary words
   - **Non-duplication**: Each memory item must not repeat other items
-  
-  ## Important notes  
-  - Think about whether the memory you propose is sufficiently actionable
-    If it is too general, the agent may not consider it when solving problems
-  - The techniques you extract may be applicable across multiple scenarios, such as reverse engineering, C code analysis, and network data transmission. Therefore, there is no need to specify a particular context—just describe it as a general type of technique (e.g., computational technique, multiple-choice strategy).
+
+  ## Important notes 
+  -The memory you propose should not only help the agent rule out incorrect options, but also help the agent choose the correct one. 
+  - The techniques you extract must be applicable across multiple scenarios,so don't mention too specific scenario in the memory
   - Focus on memories that the agent is still lacking
   - Don’t repeat what’s already in the existing memory
-  - If you feel your memory is too vague or general, provide simple and easy-to-understand examples. Do not rely on existing problems for your examples, since the agent will not know the specific context of those problems in the future.
-  - You must not repeat similar or overlapping memories
-  - Use imperative language ("Always...", "Never...", "When X,do Y...")
+  - If you feel your memory is too vague, provide simple and easy-to-understand examples. Do not rely on existing problems for your examples, since the agent will not know the specific context of those problems in the future.
+  - Use imperative language ("Always...", "Never...", "When doing malware-analysis,do Y...")
   - You can extract at most 3 memory items from these trajectories
   - Feel free to brainstorm and consider various memories
-   
+  
   You can consider the following three aspects:
-  1. Answer Structure
-    - Whether it follows the **required response schema** to help parse its answer
-  2. Reasoning Process
-    - Appreciate reasoning that is highly **consistent**, **logical**, and **coherent**
-    - Disapprove of reasoning that is repetitive, full of back-and-forth turns, or unnecessarily long-winded 
-    - You can also provide some reasoning patterns that help solve cybersecurity problems or multiple-choice strategies 
-  3. Knowledge Base
+  1. Reasoning Process
+    - Appreciate **coherent**,**rigorous**, **evidence-driven**, and **consistent** thinking.
+    - Oppose **skipping steps**, **guessing**, or using **sloppy reasoning**.
+    - You can also provide some reasoning patterns that help solve malware-analysis problems or multiple-choice strategies 
+  2. Knowledge Base
     - How well existing knowledge is connected to the question
     - How to handle situations when encountering unfamiliar knowledge
 
@@ -105,9 +101,11 @@ sys_template: |-
   ```  
   # Memory Item  
   ## Title: <the title of the memory item>  
-  ## Description: Enum[Structure,Reasoning,Knowledge] (Choose one from the three terms: Structure, Reasoning, and Knowledge to fill in here.)
+  ## Description: Enum[Reasoning,Knowledge] (Choose one from the two terms: Reasoning and Knowledge to fill in here.)
   ## Content: <1-3 sentences describing the insights learned to successfully accomplishing the task,and use no more than 50 words to provide an example> 
   ```
+
+  
 user_template: |
   You are given multiple question-answering trajectories generated by an agent and memories the agent used.  
   Please read them carefully.
@@ -123,7 +121,6 @@ user_template: |
 
   **Choices:**
   {% for choice in item.choices %}
-  [choice {{loop.index - 1}}]
   - {{ choice }}
   {% endfor %}
 
