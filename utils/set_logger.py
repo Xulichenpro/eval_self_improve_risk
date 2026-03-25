@@ -186,8 +186,8 @@ def format_log_without_judge(data, responses, corrects, similarities = None, goo
     question = data.get("question", "")
     choices = data.get("options", [])
 
-    line = "═" * 76
-    sub_line = "─" * 76
+    line = "═" * 160
+    sub_line = "─" * 160
 
     # 状态映射映射表
     status_map = {

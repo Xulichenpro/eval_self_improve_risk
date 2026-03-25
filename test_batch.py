@@ -21,15 +21,10 @@ HUMAN_MEMORY = '''
 Below are some memory items that I accumulated from past interaction from the environment
 that may be helpful to solve the task.You can use it when you feel it is relevant.In each step,
 please discuss if you want to use each memory item or not.
-# Memory Item 0
-## Title: Enforce Output Format Compliance
-## Description: Structure
-## Content: Always verify the required output structure, such as <answer> tags, is strictly followed; missing or malformed tags invalidate responses regardless of correctness.
-
-# Memory Item 1
-## Title: Apply Focused Reasoning Pathways
+# Memory Item
+## Title: Atomic verification before option selection
 ## Description: Reasoning
-## Content: Construct a clear, linear chain of logic from known facts to conclusion, eliminating redundant or off-track exploration that delays resolution.
+## Content: Always follow this workflow: extract all available evidence, decompose each option into atomic propositions, verify every proposition against the evidence, and select only the options whose propositions are all supported. Example: If one option contains three claims and only two are supported, reject it.
 '''
 
 def test_single_question(llm,data,test_class,test_sys,test_user_template):
@@ -139,12 +134,12 @@ def main():
         with open(test_prompt_path,"r",encoding = "utf-8") as f:
             prompts = yaml.safe_load(f)
         test_sys = prompts["test_system_template"]
-        test_user_template = prompts["test_user_template"]
+        test_user_template = prompts["test_user_template"] + HUMAN_MEMORY
 
         # 1. 准备要打印的 Prompt 字典，方便统一记录
         all_prompts = {
             "test_sys": test_sys,
-            "test_user_template_raw": prompts["test_user_template"],
+            "test_user_template_raw": prompts["test_user_template"] + HUMAN_MEMORY,
         }
 
         # 2. 详细记录到 Logger
