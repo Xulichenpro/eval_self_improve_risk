@@ -164,11 +164,11 @@ def format_log(data, responses, correct, jaccard_similarity = None, goodcase_id=
         log.append(safe_str(responses[-1]))
 
     if not jaccard_similarity:
-        jaccard_similarity = "UNKNOWN"
+        jaccard_similarity = -1.0
 
     # Footer summary
     log.append(f"\n{line}")
-    log.append(f"🏁 SUMMARY  |   {status_text} | jaccard_similarity: {jaccard_similarity}")
+    log.append(f"🏁 SUMMARY  |   {status_text} | jaccard_similarity: {jaccard_similarity:.2f}")
     log.append(f"{line}\n")
 
     return "\n".join(log)
@@ -240,11 +240,11 @@ def format_log_without_judge(data, responses, corrects, similarities = None, goo
         # 1. 迭代 zip(responses[:-1], corrects) 展示每轮回答及其正误
         agent_responses = responses
         if not similarities:
-            similarities = ["UNKNOWN" for _ in range(len(responses))]
+            similarities = [-1.0 for _ in range(len(responses))]
         for i, (resp, corr_code, similarity) in enumerate(zip(agent_responses, corrects,similarities)):
             tag = get_tag(i)
             status_text = get_status_text(corr_code)
-            log.append(f"[Agent {i+1}] | Result: {status_text}{tag} | jaccard_similarity:{similarity} ")
+            log.append(f"[Agent {i+1}] | Result: {status_text}{tag} | jaccard_similarity:{similarity:.2f} ")
             log.append(safe_str(resp))
             log.append("")
 
@@ -252,7 +252,7 @@ def format_log_without_judge(data, responses, corrects, similarities = None, goo
     log.append(f"\n{line}")
     summary_parts = []
     for i, (corr_code, similarity) in enumerate(zip(corrects,similarities)):
-        summary_parts.append(f"Agent {i+1}: {get_status_text(corr_code)} | jaccard_similarity:{similarity} ")
+        summary_parts.append(f"Agent {i+1}: {get_status_text(corr_code)} | jaccard_similarity:{similarity:.2f} ")
     
     log.append(f"🏁 SUMMARY: {' | '.join(summary_parts)}")
     log.append(f"{line}\n")

@@ -23,7 +23,8 @@ DEFAULT_BENCHMARK = "crwd_meta"
 MAX_NUM = 20
 
 def test_single_question(llm,data,test_class,memories,test_sys,test_user_template):
-    test_user_template = Template(test_class.create_prompt(data) + '\n' + test_user_template)
+    problem_report = test_class.create_prompt(data)
+    test_user_template = Template(problem_report + '\n' + test_user_template)
     test_user = test_user_template.render(
         memory = memories,
     )
@@ -35,17 +36,20 @@ def test_single_question(llm,data,test_class,memories,test_sys,test_user_templat
         )
     except:
         response = "The agent failed to get an answer due to connection error."
-    return response
+    return response,problem_report
 
 def multitest_single_question(llm,data,test_class,memories,test_sys,test_user_template,times,max_workers = 10):
     responses = []
+    problem_report = None
+
     with ThreadPoolExecutor(max_workers = max_workers) as executor:
         futures = {
             executor.submit(test_single_question,llm,data,test_class,memories,test_sys,test_user_template):id
             for id in range(times)
         }
         for future in as_completed(futures):
-            responses.append(future.result())
+            response,problem_report = future.result()
+            responses.append(response)
     
     #exclude judge result
     corrects = []
@@ -55,7 +59,7 @@ def multitest_single_question(llm,data,test_class,memories,test_sys,test_user_te
         corrects.append(correct)
         similarities.append(similarity)
     
-    return (responses,corrects,similarities)
+    return (responses,corrects,similarities,problem_report)
 
 def test_batch_questions(llm,test_data,test_class,start_id,end_id,memories,test_sys,test_user_template,times,logger,max_workers = 10):
     results = {
@@ -72,21 +76,22 @@ def test_batch_questions(llm,test_data,test_class,start_id,end_id,memories,test_
         }
         
         for future in as_completed(futures):
-            responses,corrects,similarities = future.result()
+            responses,corrects,similarities,problem_report = future.result()
             similarity_results.extend(similarities)
 
             id = futures[future]
+            test_data[id]["question"] = problem_report
             logger_info = format_log_without_judge(test_data[id], responses, corrects,similarities=similarities)
             logger.info(logger_info)
             id = futures[future]
             model_results[id] = {
-                "question":test_data[id].get("question",None),
+                "question":problem_report,
                 "choices":test_data[id]["options"],
                 "responses":responses
             }
             for response,correct in zip(responses,corrects):
                 status = {
-                    "question":test_data[id]["question"],
+                    "question":problem_report,
                     "choices":test_data[id]["options"],
                     "response":response
                 }
@@ -146,7 +151,8 @@ def main():
         logger.info("🧠 Memory module: Initialized successfully")
         
         evaluation.benchmark.Benchmark.register_benchmark(evaluation.malware_analysis.MalwareAnalysisBenchmark)
-        
+        logger.info("📍 Benchmark registry is fully initialized. All discovered subclasses have been loaded and registered successfully")
+
         test_dir = Path("dataset/" + bench)
         test_data = process_benchmark(test_dir)
         sub_task_count = len(test_data)
@@ -212,8 +218,9 @@ def main():
                 stat_path = None,
                 input_modality = None,
             )
+            test_class = cls(config)
+            logger.info("💥 Initialze benchmark class instance")
 
-            test_class = cls(config) 
             start_id = 0 
             if not sub_benchmark.startswith("malware"):continue
             while start_id < len(subtest_data):

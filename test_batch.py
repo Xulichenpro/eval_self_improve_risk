@@ -33,24 +33,28 @@ please discuss if you want to use each memory item or not.
 '''
 
 def test_single_question(llm,data,test_class,test_sys,test_user_template):
-    test_user = test_class.create_prompt(data) + '\n' + test_user_template
+    problem_report = test_class.create_prompt(data)
+    test_user = problem_report + '\n' + test_user_template
     
     response = invoke_with_retry(
         llm,
         {"role":"user","content":test_user},
         message_history = [{"role":"system","content":test_sys}]
     )
-    return response
+    return response,problem_report
 
 def multitest_single_question(llm,data,test_class,test_sys,test_user_template,times,max_workers = 10):
     responses = []
+    problem_report = None
+
     with ThreadPoolExecutor(max_workers = max_workers) as executor:
         futures = {
             executor.submit(test_single_question,llm,data,test_class,test_sys,test_user_template):id
             for id in range(times)
         }
         for future in as_completed(futures):
-            responses.append(future.result())
+            response,problem_report = future.result()
+            responses.append(response)
     
     corrects = []
     similarities = []
@@ -59,7 +63,7 @@ def multitest_single_question(llm,data,test_class,test_sys,test_user_template,ti
         corrects.append(correct)
         similarities.append(similarity)
 
-    return (responses,corrects,similarities)
+    return (responses,corrects,similarities,problem_report)
 
 def test_batch_questions(llm,test_data,test_class,start_id,end_id,test_sys,test_user_template,times,logger,max_workers = 10):
     results = {
@@ -75,15 +79,16 @@ def test_batch_questions(llm,test_data,test_class,start_id,end_id,test_sys,test_
         }
         
         for future in as_completed(futures):
-            responses,corrects,similarities = future.result()
+            responses,corrects,similarities,problem_report = future.result()
             similarity_results.extend(similarities)
 
             id = futures[future]
+            test_data[id]["question"] = problem_report
             for response,correct,similarity in zip(responses,corrects,similarities):
                 logger_info = format_log(test_data[id], [response], correct, jaccard_similarity = similarity)
                 logger.info(logger_info)
                 status = {
-                    "question":test_data[id].get("question",None),
+                    "question":problem_report,
                     "options":test_data[id]["options"],
                     "response":response
                 }
@@ -123,6 +128,7 @@ def main():
         logger.info(f"🤖 Model loaded: [ {model} ] (Temp: {temperature}) (Max_tokens = {max_tokens})")
         
         evaluation.benchmark.Benchmark.register_benchmark(evaluation.malware_analysis.MalwareAnalysisBenchmark)
+        logger.info("📍 Benchmark registry is fully initialized. All discovered subclasses have been loaded and registered successfully")
         
         test_dir = Path("dataset/" + bench)
         test_data = process_benchmark(test_dir)
@@ -175,15 +181,16 @@ def main():
                 stat_path = None,
                 input_modality = None,
             )
-
             test_class = cls(config)
+            logger.info("💥 Initialze benchmark class instance")
+          
             start_id = 0 
             while start_id < len(subtest_data):
                 set_filehandler(logger,log_dir,f"batch_{batch_id}")
                 logger.info("="*30 + " 🚀 Starting New Batch " + "="*30)
                 logger.info(f"📍 Sub-benchmark: {sub_benchmark} | Range: [{start_id} - {start_id + batch - 1}]")
                 
-                new_results,new_similarities = test_batch_questions(llm,subtest_data,test_class,start_id,start_id + batch - 1,test_sys,test_user_template,times,logger,max_workers)
+                new_results,new_similarities = test_batch_questions(llm,subtest_data,test_class,start_id,min(start_id + batch - 1,len(subtest_data) - 1),test_sys,test_user_template,times,logger,max_workers)
                 similarities.extend(new_similarities)
                 start_id += batch
                 correct_num += len(new_results["success"])
