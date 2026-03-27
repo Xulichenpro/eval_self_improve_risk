@@ -5,23 +5,23 @@ test_system_template: |-
   You MUST strictly follow the output format below, otherwise the answer may not be parsed correctly.
   Required format
 
-  <scrachpad>
+  <scratchpad>
   {your_thought_here}
-  </scrachpad>
+  </scratchpad>
   <answer>
   {your_answer_here}
   </answer>
 
   Rules:
-  - Put your reasoning inside the <scrachpad> block.
+  - Put your reasoning inside the <scratchpad> block.
   - Put ONLY the final numeric answer inside the <answer> block.
 
 test_user_template: |-
   Output format (must follow exactly):
 
-  <scrachpad>
+  <scratchpad>
   {your_thought_here}
-  </scrachpad>
+  </scratchpad>
   <answer>
   {your_answer_here}
   </answer>

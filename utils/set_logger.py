@@ -99,7 +99,7 @@ def format_log(data, responses, correct, jaccard_similarity = None, goodcase_id=
     :param badcase_id: 反面教材在 responses 中的索引
     """
     question = data.get("question", "")
-    choices = data.get("choices", [])
+    choices = data.get("choices", []) if data.get("choices", []) else data["options"]
 
     line = "═" * 76
     sub_line = "─" * 76
@@ -164,7 +164,7 @@ def format_log(data, responses, correct, jaccard_similarity = None, goodcase_id=
         log.append(sub_line)
         log.append(safe_str(responses[-1]))
 
-    if not jaccard_similarity:
+    if jaccard_similarity is None:
         jaccard_similarity = UNKNOWN
 
     # Footer summary
@@ -185,7 +185,7 @@ def format_log_without_judge(data, responses, corrects, similarities = None, goo
     :param badcase_id: 反面教材在 responses 中的索引
     """
     question = data.get("question", "")
-    choices = data.get("options", [])
+    choices = data.get("options", []) if data.get("options", []) else data["choices"]
 
     line = "═" * 160
     sub_line = "─" * 160

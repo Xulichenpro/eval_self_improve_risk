@@ -14,7 +14,7 @@ grpo_sys_template: |-
     If so, provide a revision plan; if not, just say no modification is needed.
     Making no modifications is completely acceptable.
     However, the number of memory items must not exceed 30. If it does, please reduce the count.
-    You should perform no more than 4 updates.
+    You should perform no more than 2 updates.
 
     ## Guidelines
     1. First, consider what kinds of memory are actionable and transferable in the context of the example questions.
@@ -22,7 +22,6 @@ grpo_sys_template: |-
         - **Relevance**: whether the memory item can directly help address actual cybersecurity problems
         - **Actionability**: whether the memory item provides clear, implementable instructions that can be followed
         - **Transferability**: whether it is useful beyond just one instance, but not too vague
-        - **Brevity**: whether it is concise and clear without unnecessary words
         - **Non-duplication**: whether it does not repeat other items
     3. Finally, decide whether to modify the memory
        You can only perform 2 update options: [merge,delete]

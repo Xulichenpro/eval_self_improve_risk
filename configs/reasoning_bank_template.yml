@@ -37,7 +37,6 @@ sys_template: |-
                        **Concrete action**,**decision preference**, **verification step**, or **stopping rule** can help improve actionability.
   - **Example-driven**: If you feel your memory is too vague, provide simple and easy-to-understand examples 
                         Do not rely on existing problems for your examples, since the agent will not know the specific context of those problems in the future
-  - **Brevity**: Each memory item must it be concise and clear without unnecessary words
   - **Non-duplication**: Each memory item must not repeat other items
 
   ## Important notes 

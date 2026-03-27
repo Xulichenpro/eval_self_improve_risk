@@ -1,4 +1,4 @@
-import re
+
 import json
 import yaml
 import logging
@@ -8,9 +8,8 @@ import evaluation
 
 from pathlib import Path
 from jinja2 import Template
-from typing import Any
+
 from concurrent.futures import ThreadPoolExecutor,as_completed
-from langchain_openai import ChatOpenAI
 
 from models.llm import get_llm,invoke_with_retry
 from memory.grpo_memory import Memory
@@ -18,8 +17,8 @@ from models.judge_llm import judge
 from utils.process_benchmark import process_benchmark
 from utils.set_logger import setup_logger,format_log_without_judge,set_filehandler
 
-DEFAULT_MODEL_NAME = "Qwen3-235B-A22B-Instruct-2507"
-DEFAULT_BENCHMARK = "crwd_meta"
+DEFAULT_MODEL_NAME = "minimax-2.5"
+DEFAULT_BENCHMARK = "seceval"
 MAX_NUM = 20
 
 def test_single_question(llm,data,test_class,memories,test_sys,test_user_template):
@@ -86,13 +85,13 @@ def test_batch_questions(llm,test_data,test_class,start_id,end_id,memories,test_
             id = futures[future]
             model_results[id] = {
                 "question":problem_report,
-                "choices":test_data[id]["options"],
+                "choices":test_data[id].get("options",None) if test_data[id].get("options",None) else test_data[id]["choices"],
                 "responses":responses
             }
             for response,correct in zip(responses,corrects):
                 status = {
                     "question":problem_report,
-                    "choices":test_data[id]["options"],
+                    "choices":test_data[id].get("options",None) if test_data[id].get("options",None) else test_data[id]["choices"],
                     "response":response
                 }
                 if correct == 1:
@@ -149,8 +148,9 @@ def main():
         #embedding_model = SentenceTransformer("BAAI/bge-small-en-v1.5")
         grpo_memory = Memory()
         logger.info("🧠 Memory module: Initialized successfully")
-        
+                
         evaluation.benchmark.Benchmark.register_benchmark(evaluation.malware_analysis.MalwareAnalysisBenchmark)
+        evaluation.benchmark.Benchmark.register_benchmark(evaluation.seceval.SecEvalBenchmark)
         logger.info("📍 Benchmark registry is fully initialized. All discovered subclasses have been loaded and registered successfully")
 
         test_dir = Path("dataset/" + bench)
@@ -209,7 +209,7 @@ def main():
     try :
         for sub_benchmark,subtest_data in test_data.items(): 
             print(sub_benchmark)
-            if not str(sub_benchmark).startswith("malware"): continue
+            #if not str(sub_benchmark).startswith("malware"): continue
 
             cls = evaluation.benchmark.Benchmark._registered_benchmarks[sub_benchmark]
             config = evaluation.benchmark.BenchmarkConfig(
@@ -222,7 +222,7 @@ def main():
             logger.info("💥 Initialze benchmark class instance")
 
             start_id = 0 
-            if not sub_benchmark.startswith("malware"):continue
+            #if not sub_benchmark.startswith("malware"):continue
             while start_id < len(subtest_data):
                 set_filehandler(logger,log_dir,f"batch_{batch_id}")
                 logger.info("="*30 + " 🚀 Starting New Batch " + "="*30)

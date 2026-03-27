@@ -14,7 +14,7 @@ from utils.process_benchmark import process_benchmark
 from utils.set_logger import setup_logger,format_log,set_filehandler
 
 DEFAULT_MODEL_NAME = "minimax-2.5"
-DEFAULT_BENCHMARK = "crwd_meta"
+DEFAULT_BENCHMARK = "seceval"
 MAX_NUM = 20
 
 HUMAN_MEMORY = '''
@@ -84,7 +84,7 @@ def test_batch_questions(llm,test_data,test_class,start_id,end_id,test_sys,test_
                 logger.info(logger_info)
                 status = {
                     "question":problem_report,
-                    "options":test_data[id]["options"],
+                    "options":test_data[id].get("options",None) if test_data[id].get("options",None) else test_data[id]["choices"],
                     "response":response
                 }
                 if correct == 1:
@@ -123,6 +123,7 @@ def main():
         logger.info(f"🤖 Model loaded: [ {model} ] (Temp: {temperature}) (Max_tokens = {max_tokens})")
         
         evaluation.benchmark.Benchmark.register_benchmark(evaluation.malware_analysis.MalwareAnalysisBenchmark)
+        evaluation.benchmark.Benchmark.register_benchmark(evaluation.seceval.SecEvalBenchmark)
         logger.info("📍 Benchmark registry is fully initialized. All discovered subclasses have been loaded and registered successfully")
         
         test_dir = Path("dataset/" + bench)
@@ -167,7 +168,7 @@ def main():
     try :
         for sub_benchmark,subtest_data in test_data.items():  
             print(sub_benchmark)
-            if not str(sub_benchmark).startswith("malware"): continue
+            #if not str(sub_benchmark).startswith("malware"): continue
 
             cls = evaluation.benchmark.Benchmark._registered_benchmarks[sub_benchmark]
             config = evaluation.benchmark.BenchmarkConfig(
