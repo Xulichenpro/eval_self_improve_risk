@@ -20,7 +20,7 @@ class Memory:
         new_memories = []
         # 使用正则表达式匹配Markdown块中的内容
         # (?s) 即 re.DOTALL，使 . 能够匹配换行符
-        pattern = r"#\s*Memory Item.*?\n##\s*Title:\s*(.*?)\n##\s*Description:\s*(.*?)\n##\s*Content:\s*(.*?)(?=\n)"
+        pattern = r"#\s*Memory Item.*?\n##\s*Title:\s*(.*?)\n##\s*Description:\s*(.*?)\n##\s*Content:\s*(.*?)(?=\n#\s*Memory Item|\Z)"
         
         matches = re.finditer(pattern, response, re.DOTALL | re.IGNORECASE)
         for match in matches:
