@@ -17,7 +17,7 @@ from models.judge_llm import judge
 from utils.process_benchmark import process_benchmark
 from utils.set_logger import setup_logger,format_log_without_judge,set_filehandler
 
-DEFAULT_MODEL_NAME = "minimax-2.5"
+DEFAULT_MODEL_NAME = "Qwen3-235B-A22B-Instruct-2507"
 DEFAULT_BENCHMARK = "seceval"
 MAX_NUM = 20
 
@@ -85,13 +85,11 @@ def test_batch_questions(llm,test_data,test_class,start_id,end_id,memories,test_
             id = futures[future]
             model_results[id] = {
                 "question":problem_report,
-                "choices":test_data[id].get("options",None) if test_data[id].get("options",None) else test_data[id]["choices"],
                 "responses":responses
             }
             for response,correct in zip(responses,corrects):
                 status = {
                     "question":problem_report,
-                    "choices":test_data[id].get("options",None) if test_data[id].get("options",None) else test_data[id]["choices"],
                     "response":response
                 }
                 if correct == 1:
@@ -151,6 +149,7 @@ def main():
                 
         evaluation.benchmark.Benchmark.register_benchmark(evaluation.malware_analysis.MalwareAnalysisBenchmark)
         evaluation.benchmark.Benchmark.register_benchmark(evaluation.seceval.SecEvalBenchmark)
+        evaluation.benchmark.Benchmark.register_benchmark(evaluation.ctimcq.CTIMCP)
         logger.info("📍 Benchmark registry is fully initialized. All discovered subclasses have been loaded and registered successfully")
 
         test_dir = Path("dataset/" + bench)
@@ -253,7 +252,7 @@ def main():
                     except:
                         response_opt_memory = "Fail to get memory optimization plan."
                     logger.info(f"🤖 Optimizing memory policy via LLM reasoning (GRPO)...\n {response_opt_memory}")
-                    #grpo_memory.process_opt_memory(response_opt_memory)
+                    grpo_memory.process_opt_memory(response_opt_memory)
                     logger.info("✨" + "-" * 20 + " Updated Global Memory " + "-" * 20 + "✨")
                     logger.info(f"\n{grpo_memory.format_memories()}")
                     logger.info("✨" + "-" * 60 + "✨")

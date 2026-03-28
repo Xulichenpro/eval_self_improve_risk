@@ -1,4 +1,5 @@
 import re
+import csv
 import json
 
 from pathlib import Path
@@ -116,6 +117,30 @@ def process_json_benchmark(path: Path):
 
     return rows
 
+def process_tsv_benchmark(path: Path):
+    """
+    递归处理：
+    - 如果 path 是目录：遍历所有 .tsv 文件
+    - 将每一行解析为字典（类似 JSON 对象的结构）
+    返回：
+    - rows: dict[path.parent] = problems (list of dicts)
+    """
+    rows = {}
+
+    if path.is_dir():
+        for p in path.rglob("*.tsv"):  # 递归找所有 tsv
+            with open(p, "r", encoding="utf-8") as f:
+                # 使用 DictReader 读取，delimiter 设为制表符 '\t'
+                # 这会将 TSV 的每一行转换为一个字典，Key 为表头
+                reader = csv.DictReader(f, delimiter='\t')
+                problems = list(reader)
+
+            rows[str(p.parent.stem)] = problems
+
+    else:
+        raise ValueError(f"Invalid path: {path}")
+
+    return rows
 
 def process_benchmark(path: Path):
     """
@@ -130,11 +155,14 @@ def process_benchmark(path: Path):
     # 查找文件
     parquet_files = list(path.rglob("*.parquet"))
     json_files = list(path.rglob("*.json"))
+    tsv_files = list(path.rglob("*.tsv"))
 
     if parquet_files:
         return process_parquet_benchmark(path)
     elif json_files:
         return process_json_benchmark(path)
+    elif tsv_files:
+        return process_tsv_benchmark(path)
     else:
         raise ValueError(f"No parquet or json files found in directory: {path}")
 

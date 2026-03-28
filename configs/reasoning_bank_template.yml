@@ -17,7 +17,6 @@ sys_template: |-
     - Disapprove of reasoning that is repetitive, full of back-and-forth turns, or unnecessarily long-winded
     - Consider the role that existing memories play in the agent’s problem-solving process
     - Identify what memories the agent is still lacking
-    - Whether each trajectory follow the required response schema
   3. You may extract some insights from each question
   4. Analyze the scopes of these insights, and then extract memories from those scopes with appropriate length and information density
   5. Extract memories according to the following rules:
@@ -25,19 +24,17 @@ sys_template: |-
     - Identify patterns and strategies that consistently led to success
     - Identify mistakes or inefficiencies from failed trajectories and formulate preventative strategies
     - Focus on the memories that the agent is still lacking
-    - To make the memory more actionable, provide an example of no more than 50 words in each memory
+    - To make the memory more actionable, you may provide an example of no more than 50 words in memory item
 
   Each memory item should follow these rules:
   - **Relevance**: Each memory item must directly help address actual cybersecurity problems
-  - **Actionability**: Each  memory item must provides clear, implementable instructions that can be followed
-  - **Example-driven**: Each memory item must provide **an example** of no more than 50 words in each memory
-                        The examples you provide should be simple and specific. 
-                        Do not omit necessary context, or they may be difficult to understand.
+  - **Actionability**: Each memory item must provides clear, implementable instructions that can be followed
   - **Transferability**: Each memory item must be useful beyond just one instance, but not too vague
   - **Brevity**: Each memory item must it be concise and clear without unnecessary words
   - **Non-duplication**: Each memory item must not repeat other items
 
   ## Important notes  
+  - Every problem is multiple-choice.So provide some choice hint or technique.
   - Please provide memory that can be **transferable** and **actionable** to many other cybersecurity questions
   - Do not mention the context of the problem in the memory
   - Focus on memories that the agent is still lacking
@@ -117,11 +114,6 @@ user_template: |
 
   **Question:**
   {{ item.question }}
-
-  **Choices:**
-  {% for choice in item.choices %}
-  - {{ choice }}
-  {% endfor %}
 
   **Agent's Reasoning Attempts:**
   {% for response in item.responses %}

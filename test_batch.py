@@ -7,14 +7,13 @@ import evaluation
 
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor,as_completed
-from langchain_openai import ChatOpenAI
 
 from models.llm import get_llm,invoke_with_retry
 from utils.process_benchmark import process_benchmark
 from utils.set_logger import setup_logger,format_log,set_filehandler
 
-DEFAULT_MODEL_NAME = "minimax-2.5"
-DEFAULT_BENCHMARK = "seceval"
+DEFAULT_MODEL_NAME = "Qwen3-235B-A22B-Instruct-2507"
+DEFAULT_BENCHMARK = "cti"
 MAX_NUM = 20
 
 HUMAN_MEMORY = '''
@@ -84,7 +83,6 @@ def test_batch_questions(llm,test_data,test_class,start_id,end_id,test_sys,test_
                 logger.info(logger_info)
                 status = {
                     "question":problem_report,
-                    "options":test_data[id].get("options",None) if test_data[id].get("options",None) else test_data[id]["choices"],
                     "response":response
                 }
                 if correct == 1:
@@ -124,6 +122,7 @@ def main():
         
         evaluation.benchmark.Benchmark.register_benchmark(evaluation.malware_analysis.MalwareAnalysisBenchmark)
         evaluation.benchmark.Benchmark.register_benchmark(evaluation.seceval.SecEvalBenchmark)
+        evaluation.benchmark.Benchmark.register_benchmark(evaluation.ctimcq.CTIMCP)
         logger.info("📍 Benchmark registry is fully initialized. All discovered subclasses have been loaded and registered successfully")
         
         test_dir = Path("dataset/" + bench)
@@ -193,7 +192,7 @@ def main():
                 false_num += len(new_results["failure"]["answer"])
                 parse_error_num += len(new_results["failure"]["parse"])
                 batch_id += 1
-                if start_id >= 100: break
+                #if start_id >= 100: break
     except KeyboardInterrupt:
         logger.warning("🛑 User interrupted the process. Saving current metadata...")
     except Exception as e:

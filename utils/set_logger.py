@@ -99,7 +99,6 @@ def format_log(data, responses, correct, jaccard_similarity = None, goodcase_id=
     :param badcase_id: 反面教材在 responses 中的索引
     """
     question = data.get("question", "")
-    choices = data.get("choices", []) if data.get("choices", []) else data["options"]
 
     line = "═" * 76
     sub_line = "─" * 76
@@ -134,14 +133,6 @@ def format_log(data, responses, correct, jaccard_similarity = None, goodcase_id=
     log.append("🧠 QUESTION")
     log.append(sub_line)
     log.append(safe_str(question))
-
-    # Choices
-    log.append("\n📌 CHOICES")
-    log.append(sub_line)
-    labels = ["0", "1", "2", "3"]
-    for i, choice in enumerate(choices):
-        label = labels[i] if i < len(labels) else str(i)
-        log.append(f"  {label}. {safe_str(choice)}")
 
     # Agent responses
     log.append("\n🤖 AGENT RESPONSES")
@@ -185,7 +176,6 @@ def format_log_without_judge(data, responses, corrects, similarities = None, goo
     :param badcase_id: 反面教材在 responses 中的索引
     """
     question = data.get("question", "")
-    choices = data.get("options", []) if data.get("options", []) else data["choices"]
 
     line = "═" * 160
     sub_line = "─" * 160
@@ -222,14 +212,6 @@ def format_log_without_judge(data, responses, corrects, similarities = None, goo
     log.append("🧠 QUESTION")
     log.append(sub_line)
     log.append(safe_str(question))
-
-    # Choices
-    log.append("\n📌 CHOICES")
-    log.append(sub_line)
-    labels = ["0", "1", "2", "3"]
-    for i, choice in enumerate(choices):
-        label = labels[i] if i < len(labels) else str(i)
-        log.append(f"  {label}. {safe_str(choice)}")
 
     # Agent responses
     log.append("\n🤖 AGENT RESPONSES")

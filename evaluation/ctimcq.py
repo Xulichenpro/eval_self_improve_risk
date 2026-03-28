@@ -5,7 +5,7 @@ from typing import Any, cast, Dict, List, Optional, Union
 from .benchmark import Benchmark,BenchmarkConfig
 from utils.eval_utils import jaccard_similarity
 
-class SecEvalBenchmark(Benchmark):
+class CTIMCP(Benchmark):
     def __init__(
             self,
             config:BenchmarkConfig,
@@ -15,23 +15,14 @@ class SecEvalBenchmark(Benchmark):
 
     @classmethod
     def return_kind(cls):
-        return ["seceval"]
+        return ["ctimcq"]
     
     def create_prompt(
         self, test_case: Dict[str, Union[int, str]],
     ) -> str:
         """Create a prompt for the given test case."""
-        question = test_case.get("question")
-        options = test_case.get("choices")
 
-        prompt = f"""
-
-        Answer the following multi-choice question: {question}.
-        Options: {options}.
-        You need to return the list of the list of the letter corresponding to the correct answers, just the letter.
-        For example:["A"]
-        """
-        return prompt
+        return test_case["Prompt"]
     
     def check_answer(self, response, data):
         answer_pattern = r"<scratchpad>.*?</scratchpad>.*?<answer>(.*?)</answer>"
@@ -56,7 +47,7 @@ class SecEvalBenchmark(Benchmark):
             return 2, 0
 
                 # 正确答案
-        answer = data.get("answer", None)
+        answer = data.get("GT", None)
         answer = [x.upper() for x in re.findall(r"[A-Za-z]", answer)]
         correct = set(answer)
         similarity = jaccard_similarity(extracted, set(correct))

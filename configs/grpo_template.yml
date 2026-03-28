@@ -12,12 +12,12 @@ grpo_sys_template: |-
      
     Your goal is to collect information and consider whether a modification is necessary. 
     If so, provide a revision plan; if not, just say no modification is needed.
-    Making no modifications is completely acceptable.
-    However, the number of memory items must not exceed 30. If it does, please reduce the count.
-    You should perform no more than 2 updates.
+    Making no modifications is **completely acceptable**.
+    However, the number of memory items must not exceed **30**. If it does, please reduce the count.
+    You should perform no more than **2** updates.
 
     ## Guidelines
-    1. First, consider what kinds of memory are actionable and transferable in the context of the example questions.
+    1. First, consider what kinds of memory are **actionable and transferable** in the context of the example questions.
     2. Then, carefully analyze each memory according to the following rules:
         - **Relevance**: whether the memory item can directly help address actual cybersecurity problems
         - **Actionability**: whether the memory item provides clear, implementable instructions that can be followed
