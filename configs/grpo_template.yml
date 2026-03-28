@@ -33,9 +33,12 @@ grpo_sys_template: |-
     2. Make an update if and only if there is a **clear, actionable, or transferable** improvement
     3. For each revision, you must explicitly state what update you made
     4. The number of memory items must not exceed 30. If it does, reduce the count by merging and deleting items
-    5. When merging, ensure that each memory has an appropriate level of information density and does not contain too much information
-    6. If merging results in overly high information density, do not merge them or over-generalize them
-    7. Use imperative language (“Always...”, “Prefer...”, “When X, do Y...”)
+    5. When performing **merge**, ensure that each memory has an appropriate level of information density and does not contain too much information
+    6. When performing **merge**, please note that memory item IDs follow a **zero-based** index
+       Ensure that the merge ID provided by you does not exceed the current maximum ID
+       Please **double-check** the accuracy of merge IDs before proceeding
+    7. If merging results in overly high information density, do not merge them or over-generalize them
+    8. Use imperative language (“Always...”, “Prefer...”, “When X, do Y...”)
     
     The memory format:
     ```  

@@ -18,7 +18,7 @@ from utils.process_benchmark import process_benchmark
 from utils.set_logger import setup_logger,format_log_without_judge,set_filehandler
 
 DEFAULT_MODEL_NAME = "Qwen3-235B-A22B-Instruct-2507"
-DEFAULT_BENCHMARK = "seceval"
+DEFAULT_BENCHMARK = "cti"
 MAX_NUM = 20
 
 def test_single_question(llm,data,test_class,memories,test_sys,test_user_template):
@@ -161,7 +161,7 @@ def main():
         #print(answer)
         with open(test_prompt_path,"r",encoding = "utf-8") as f:
             prompts = yaml.safe_load(f)
-        test_sys = prompts["test_system_template"]
+        test_sys = prompts["test_memory_system_template"]
         test_user_template = prompts["test_user_template"] +  prompts["user_template_with_memory"]
        
         with open(memory_prompt_path,"r",encoding = "utf-8") as f:
@@ -252,7 +252,10 @@ def main():
                     except:
                         response_opt_memory = "Fail to get memory optimization plan."
                     logger.info(f"🤖 Optimizing memory policy via LLM reasoning (GRPO)...\n {response_opt_memory}")
-                    grpo_memory.process_opt_memory(response_opt_memory)
+                    try:
+                        grpo_memory.process_opt_memory(response_opt_memory)
+                    except:
+                        logger.warning("🛑 Fail to optimize existing memory.")
                     logger.info("✨" + "-" * 20 + " Updated Global Memory " + "-" * 20 + "✨")
                     logger.info(f"\n{grpo_memory.format_memories()}")
                     logger.info("✨" + "-" * 60 + "✨")
@@ -264,7 +267,7 @@ def main():
                 start_id += batch
                 total_processed_questions += batch
                 batch_id += 1
-                if start_id >= 100: break
+                #if start_id >= 100: break
     except KeyboardInterrupt:
         logger.warning("🛑 User interrupted the process. Saving current metadata...")
     except Exception as e:
